@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>منشئ خطة النشاط الطلابي</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>منشئ خطة النشاط الطلابي</h1>
+    <span class="sub">تعبئة قالب Word الأصلي آليًا مع الحفاظ الكامل على تصميمه</span>
+  </div>
+  <div class="plan-bar">
+    <select id="planSelect" aria-label="الخطة الحالية"></select>
+    <button class="ghost" id="btnNewPlan">خطة جديدة</button>
+    <button class="ghost" id="btnDupPlan">نسخ</button>
+    <button class="ghost danger" id="btnDelPlan">حذف</button>
+    <span id="saveState" class="save-state"></span>
+  </div>
+</header>
+
+<nav class="steps" id="steps">
+  <button data-step="school">1. بيانات المدرسة</button>
+  <button data-step="officials">2. المسؤولون</button>
+  <button data-step="teachers">3. المعلمون</button>
+  <button data-step="programs">4. البرامج</button>
+  <button data-step="schedule">5. الجدولة</button>
+  <button data-step="review">6. المراجعة</button>
+  <button data-step="export">7. التصدير</button>
+</nav>
+
+<main id="main">
+  <!-- 1 -->
+  <section class="step" data-step="school">
+    <h2>بيانات المدرسة</h2>
+    <div class="grid2">
+      <label>اسم الخطة (للحفظ فقط)<input data-bind="name"></label>
+      <label>المملكة العربية السعودية<input data-bind="school.country" readonly class="ro"></label>
+      <label>وزارة التعليم<input data-bind="school.ministry" readonly class="ro"></label>
+      <label>الإدارة العامة للتعليم بمنطقة<input data-bind="school.region" placeholder="مثال: عسير"></label>
+      <label>اسم المدرسة<input data-bind="school.name" placeholder="مثال: مجمع أبو بكر الصديق التعليمي"></label>
+      <label>المرحلة الدراسية<select data-bind="school.stage" id="stageSelect"></select></label>
+      <label>العام الدراسي (من)<input data-bind="school.year_start" type="number" min="1400" max="1500"></label>
+      <label>العام الدراسي (إلى)<input data-bind="school.year_end" type="number" min="1400" max="1500"></label>
+      <label>الفصل الدراسي<select data-bind="school.semester" id="semesterSelect"></select></label>
+      <label>تاريخ بداية الأسبوع الأول (هجري - يوم أحد)
+        <input data-bind="calendar.week1_start" placeholder="10/3/1448"><small id="week1Info" class="hint"></small></label>
+    </div>
+    <label class="check"><input type="checkbox" data-bind="school.prefix_stage"> إضافة المرحلة قبل اسم المدرسة في الغلاف</label>
+    <div class="card soft">
+      <h3>كيف ستظهر في المستند</h3>
+      <ul class="where" id="schoolPreview"></ul>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="step" data-step="officials">
+    <h2>بيانات المسؤولين</h2>
+    <p class="hint">يُكتب كل اسم مرة واحدة فقط، ويملؤه النظام تلقائيًا في كل موضع يظهر فيه داخل المستند.</p>
+    <div class="grid2">
+      <label>اسم رائد النشاط الطلابي<input data-bind="officials.leader"></label>
+      <label>اسم مدير المدرسة<input data-bind="officials.manager"></label>
+    </div>
+    <div class="card soft"><h3>المواضع التي تُملأ تلقائيًا</h3><ul class="where" id="officialsPreview"></ul></div>
+  </section>
+
+  <!-- 3 -->
+  <section class="step" data-step="teachers">
+    <h2>المعلمون <small class="hint">عدد الحصص الممكن الاستفادة منها = عدد حصص المادة × 10% (تقريب لأسفل)</small></h2>
+    <div class="toolbar">
+      <button id="btnAddTeacher">+ إضافة معلم</button>
+      <a class="btn ghost" id="lnkTeachersCsv">تصدير المعلمين CSV</a>
+    </div>
+    <div class="split">
+      <div class="table-wrap"><table class="data" id="teachersTable"></table></div>
+      <aside class="card" id="teacherPanel"></aside>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="step" data-step="programs">
+    <h2>البرامج والأنشطة</h2>
+    <div class="toolbar">
+      <button id="btnAddProgram">+ برنامج جديد</button>
+      <button class="ghost" id="btnLibrary">إضافة من مكتبة البرامج</button>
+      <label class="btn ghost file">استيراد من ملف (Excel / CSV / Word / PDF)<input type="file" id="importFile" accept=".xlsx,.csv,.docx,.pdf,.txt"></label>
+      <a class="btn ghost" href="/samples/نموذج استيراد البرامج.xlsx">نموذج ملف الاستيراد</a>
+      <select id="programFilter"><option value="">كل المجالات</option></select>
+    </div>
+    <div class="split">
+      <div class="table-wrap"><table class="data" id="programsTable"></table></div>
+      <aside class="card" id="programPanel"><p class="hint">اختر برنامجًا لعرض بياناته وتعديلها.</p></aside>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="step" data-step="schedule">
+    <h2>توزيع البرامج على الأيام والحصص</h2>
+    <div class="toolbar">
+      <button id="btnAuto">توزيع تلقائي</button>
+      <button class="ghost" id="btnAutoReset">إعادة التوزيع من البداية (يحذف التعديلات اليدوية)</button>
+      <label class="check"><input type="checkbox" data-bind="settings.prevent_conflicts"> منع التضارب في نفس الحصة</label>
+    </div>
+    <div class="weeks" id="weekTabs"></div>
+    <div id="unplaced"></div>
+    <div class="table-wrap"><table class="week" id="weekGrid"></table></div>
+    <p class="hint">اضغط على أي خانة لاختيار البرنامج؛ يُحضر النظام الصف والمعلم تلقائيًا من بيانات البرنامج. الأيام الملونة في القالب (إجازات/اختبارات) محجوبة ولا تُعدل.</p>
+  </section>
+
+  <!-- 6 -->
+  <section class="step" data-step="review">
+    <h2>مراجعة الخطة</h2>
+    <div id="validation"></div>
+    <div class="stats" id="stats"></div>
+    <h3>جدول إسناد البرامج للمعلمين (كما سيُكتب في القالب)</h3>
+    <div class="table-wrap"><table class="data" id="assignTable"></table></div>
+    <h3>برامج النشاط حسب المجال</h3>
+    <div class="table-wrap"><table class="data" id="domainTable"></table></div>
+    <div class="toolbar"><button id="btnPreview">معاينة الخطة</button><span class="hint">المعاينة هي صفحات ملف Word الناتج نفسه بعد تحويله.</span></div>
+    <div id="previewBox" class="preview"></div>
+  </section>
+
+  <!-- 7 -->
+  <section class="step" data-step="export">
+    <h2>التصدير</h2>
+    <div class="export-grid">
+      <div class="card big">
+        <h3>ملف Word</h3>
+        <p>نفس ملف القالب الأصلي بعد تعبئته آليًا.</p>
+        <button id="btnDocx">تصدير Word</button>
+      </div>
+      <div class="card big">
+        <h3>ملف PDF</h3>
+        <p>للمعاينة والطباعة (يُحوَّل من ملف Word الناتج).</p>
+        <button id="btnPdf">تصدير PDF</button>
+      </div>
+      <div class="card big">
+        <h3>اختبار التطابق</h3>
+        <p>مقارنة آلية بين القالب الأصلي والملف الناتج: الحزمة، XML، المقاييس، وصفحات PDF.</p>
+        <button id="btnVerify" class="ghost">تشغيل الاختبار</button>
+        <div id="verifyResult"></div>
+      </div>
+      <div class="card big">
+        <h3>قواعد البيانات والنسخ الاحتياطي</h3>
+        <p><a id="lnkDb">قاعدة بيانات البرامج والمعلمين (Excel)</a></p>
+        <p><a id="lnkProgCsv">البرامج CSV</a> · <a id="lnkTeachCsv">المعلمون CSV</a></p>
+        <p><a id="lnkBackup">نسخة احتياطية من الخطة (JSON)</a></p>
+        <label class="btn ghost file">استعادة خطة من نسخة احتياطية<input type="file" id="restoreFile" accept=".json"></label>
+      </div>
+    </div>
+    <div id="exportMsg"></div>
+  </section>
+</main>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal-box">
+    <button class="close" id="modalClose" aria-label="إغلاق">×</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
