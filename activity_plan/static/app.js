@@ -36,45 +36,85 @@ function domainClass(d) { const i = S.meta.domains.indexOf(d); return i >= 0 ? "
 function slotLabel(k) { return S.meta.slots[k] || k || ""; }
 function hdate(s) { return s ? s + "هـ" : ""; }
 
+// ---------------------------------------------------------------- التخزين في المتصفح
+// الخادم عديم الحالة: كل الخطط محفوظة في هذا المتصفح، وتُرسل الخطة مع كل طلب.
+const Store = (() => {
+  const KEY = "activity-plans:v1", LAST = "activity-plans:last";
+  let mem = {}, ok = true;
+  try { const t = "__t"; localStorage.setItem(t, "1"); localStorage.removeItem(t); } catch (e) { ok = false; }
+  const read = () => { if (!ok) return mem; try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; } };
+  const write = (all) => {
+    if (!ok) { mem = all; return true; }
+    try { localStorage.setItem(KEY, JSON.stringify(all)); return true; }
+    catch (e) { toast("تعذر الحفظ في المتصفح (المساحة ممتلئة؟). نزّل نسخة احتياطية من خطوة التصدير.", true); return false; }
+  };
+  return {
+    persistent: ok,
+    list() {
+      return Object.values(read()).map((p) => ({ id: p.id, name: p.name, school: p.school?.name || "", updated: p.updated || "" }))
+        .sort((a, b) => (b.updated > a.updated ? 1 : -1));
+    },
+    get(id) { return read()[id]; },
+    save(plan) { const all = read(); plan.updated = new Date().toISOString().slice(0, 19); all[plan.id] = plan; return write(all); },
+    remove(id) { const all = read(); delete all[id]; write(all); },
+    last(id) { try { if (id) localStorage.setItem(LAST, id); return localStorage.getItem(LAST); } catch (e) { return null; } },
+  };
+})();
+
 // ---------------------------------------------------------------- الحفظ
 function markDirty(reschedule) {
   $("#saveState").textContent = "جارٍ الحفظ…";
+  Store.save(S.plan);
   clearTimeout(S.saveTimer);
-  S.saveTimer = setTimeout(() => save(reschedule), 600);
+  S.pendingReschedule = S.pendingReschedule || reschedule;
+  S.saveTimer = setTimeout(() => { const r = S.pendingReschedule; S.pendingReschedule = false; save(r); }, 600);
 }
 async function save(reschedule) {
   try {
-    const url = reschedule ? `/api/plans/${S.plan.id}/autoschedule` : `/api/plans/${S.plan.id}`;
-    const res = await api(reschedule ? "POST" : "PUT", url, S.plan);
-    S.plan.schedule = res.plan.schedule; S.plan.updated = res.plan.updated;
-    S.derived = res.derived; if (res.unplaced) S.unplaced = res.unplaced;
-    $("#saveState").textContent = "✓ محفوظ";
+    if (reschedule) {
+      const res = await api("POST", "/api/autoschedule", { plan: S.plan });
+      S.plan.schedule = res.plan.schedule; S.derived = res.derived; S.unplaced = res.unplaced || [];
+    } else {
+      S.derived = (await api("POST", "/api/derive", { plan: S.plan })).derived;
+    }
+    Store.save(S.plan);
+    $("#saveState").textContent = Store.persistent ? "✓ محفوظ في هذا المتصفح" : "⚠ غير محفوظ (التخزين معطل)";
     renderDerived();
-  } catch (e) { $("#saveState").textContent = "تعذر الحفظ"; toast(e.message, true); }
+  } catch (e) { $("#saveState").textContent = "تعذر التحديث"; toast(e.message, true); }
 }
 function setPlan(res) {
   S.plan = res.plan; S.derived = res.derived; S.unplaced = res.unplaced || [];
   S.teacherId = null; S.programId = null; S.week = 0;
+  Store.save(S.plan); Store.last(S.plan.id);
   bindInputs(); renderAll(); loadPlanList();
 }
 
 // ---------------------------------------------------------------- الخطط
-async function loadPlanList() {
-  const list = await api("GET", "/api/plans");
+function loadPlanList() {
+  const list = Store.list();
   const sel = $("#planSelect");
   sel.innerHTML = list.map((p) => `<option value="${p.id}">${esc(p.name)}${p.school ? " — " + esc(p.school) : ""}</option>`).join("");
   if (S.plan) sel.value = S.plan.id;
   return list;
 }
-async function openPlan(id) { setPlan(await api("GET", `/api/plans/${id}`)); try { localStorage.setItem("lastPlan", id); } catch (e) { /* اختياري */ } }
+async function openPlan(id) {
+  const plan = Store.get(id); if (!plan) return;
+  const res = await api("POST", "/api/derive", { plan });
+  setPlan({ plan, derived: res.derived });
+}
 function newPlanDialog() {
   const b = modal(`<h2>خطة جديدة</h2><div class="form">
     <label>اسم الخطة<input id="npName" value="خطة ${new Date().getFullYear()}"></label>
-    <label class="check"><input type="checkbox" id="npTpl" checked> البدء ببرامج الاصطفاف والصلاة الموجودة في القالب الأصلي</label>
+    <label class="check"><input type="radio" name="npKind" value="template" checked> البدء ببرامج الاصطفاف والصلاة الموجودة في القالب الأصلي</label>
+    <label class="check"><input type="radio" name="npKind" value="empty"> خطة فارغة</label>
+    <label class="check"><input type="radio" name="npKind" value="demo"> الخطة التجريبية (مجمع أبو بكر الصديق — بيانات تجريبية)</label>
     <button id="npGo">إنشاء</button></div>`);
   $("#npGo", b).onclick = async () => {
-    const res = await api("POST", "/api/plans", { name: $("#npName").value, from_template: $("#npTpl").checked });
-    closeModal(); setPlan(res); try { localStorage.setItem("lastPlan", res.plan.id); } catch (e) { /* اختياري */ } goStep("school");
+    const kind = $("input[name=npKind]:checked", b).value;
+    const body = { from_template: kind === "template", demo: kind === "demo" };
+    if (kind !== "demo") body.name = $("#npName").value;
+    try { const res = await api("POST", "/api/plans/new", body); closeModal(); setPlan(res); goStep("school"); }
+    catch (e) { toast(e.message, true); }
   };
 }
 
@@ -159,7 +199,6 @@ function renderTeachersTable() {
   $("#teachersTable").innerHTML = `<tr><th>اسم المعلم</th><th>المادة</th><th>حصص المادة</th><th>المتاح (10%)</th><th>المسند</th><th>المتبقي</th><th>البرامج المسندة</th></tr>` +
     (rows || `<tr><td colspan=7 class=hint>لا يوجد معلمون بعد. أضف معلمًا.</td></tr>`);
   $$("#teachersTable tr[data-id]").forEach((tr) => (tr.onclick = () => { S.teacherId = tr.dataset.id; renderTeachers(); }));
-  $("#lnkTeachersCsv").href = `/api/plans/${S.plan.id}/export/teachers.csv`;
 }
 function renderTeacherPanel() {
   const t = teacherById(S.teacherId); const box = $("#teacherPanel");
@@ -299,9 +338,9 @@ function libraryDialog() {
   };
 }
 async function importFile(file) {
-  const fd = new FormData(); fd.append("file", file);
+  const fd = new FormData(); fd.append("file", file); fd.append("plan", JSON.stringify(S.plan));
   let res;
-  try { res = await api("POST", `/api/plans/${S.plan.id}/import`, fd, true); } catch (e) { toast(e.message, true); return; }
+  try { res = await api("POST", "/api/import", fd, true); } catch (e) { toast(e.message, true); return; }
   const lv = { error: "err", conflict: "err", warning: "warn", info: "info" };
   const names = { error: "خطأ", conflict: "تعارض", warning: "تنبيه", info: "معلومة" };
   const issues = res.issues.map((i) => `<div class="msg ${lv[i.level]}"><b>${names[i.level]}</b> — ${esc(i.where)}: ${esc(i.msg)}</div>`).join("");
@@ -320,10 +359,11 @@ async function importFile(file) {
     <button id="impApply">تطبيق الاستيراد</button> <button class="ghost" id="impCancel">إلغاء</button>`);
   $("#impCancel", b).onclick = closeModal;
   $("#impApply", b).onclick = async () => {
-    const selected = $$("input[data-id]:checked", b).map((x) => x.dataset.id);
+    const selected = new Set($$("input[data-id]:checked", b).map((x) => x.dataset.id));
+    const programs = res.programs.filter((p) => selected.has(p.id));
     const mode = $("input[name=imode]:checked", b).value;
-    try { const r = await api("POST", `/api/plans/${S.plan.id}/import/apply`, { token: res.token, selected, mode });
-      closeModal(); setPlan(r); goStep("programs"); toast(`تم استيراد ${selected.length} برنامجًا وتوزيعها.`);
+    try { const r = await api("POST", "/api/import/apply", { plan: S.plan, programs, mode });
+      closeModal(); setPlan(r); goStep("programs"); toast(`تم استيراد ${programs.length} برنامجًا وتوزيعها.`);
     } catch (e) { toast(e.message, true); }
   };
 }
@@ -414,7 +454,7 @@ function renderReview() {
 async function preview() {
   const btn = $("#btnPreview"); btn.disabled = true; $("#previewBox").innerHTML = `<p class="hint">جارٍ إنشاء ملف Word وتحويله للمعاينة…</p>`;
   try {
-    const r = await api("POST", `/api/plans/${S.plan.id}/preview`);
+    const r = await api("POST", "/api/preview", { plan: S.plan });
     const fitted = r.report.fitted.length ? `<div class="msg info">ضُبط حجم ${r.report.fitted.length} نص ليتسع في مكانه دون تغيير أبعاد الجداول.</div>` : "";
     const over = r.report.overflow.length ? `<div class="msg warn">نصوص طويلة جدًا لم تتسع حتى بأصغر خط: ${r.report.overflow.map((o) => esc(o.text)).join("، ")}</div>` : "";
     const eng = r.engine === "word" ? "" : `<div class="msg info">المعاينة مولدة بـ LibreOffice. الملف النهائي DOCX هو المرجع؛ قد تختلف أشكال الحروف قليلًا إن لم تكن خطوط Word الأصلية مثبتة.</div>`;
@@ -425,16 +465,13 @@ async function preview() {
 
 // ---------------------------------------------------------------- 7: التصدير
 function renderExport() {
-  const base = `/api/plans/${S.plan.id}`;
-  $("#lnkDb").href = base + "/export/database.xlsx"; $("#lnkProgCsv").href = base + "/export/programs.csv";
-  $("#lnkTeachCsv").href = base + "/export/teachers.csv"; $("#lnkBackup").href = base + "/backup.json";
   const v = S.derived.validation;
   $("#exportMsg").innerHTML = v.errors.length ? `<div class="msg err">يوجد ${v.errors.length} أخطاء تمنع التصدير — راجع خطوة «المراجعة».</div>` : "";
 }
 async function download(url, btn) {
   btn.disabled = true; const old = btn.textContent; btn.textContent = "جارٍ الإنشاء…";
   try {
-    const r = await fetch(url);
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan: S.plan }) });
     if (!r.ok) { const d = await r.json().catch(() => ({})); throw Object.assign(new Error(d.error || "تعذر التصدير"), { data: d }); }
     const cd = r.headers.get("Content-Disposition") || ""; let name = "خطة.docx";
     const m = cd.match(/filename\*=UTF-8''([^;]+)/i) || cd.match(/filename="?([^";]+)/i); if (m) name = decodeURIComponent(m[1]);
@@ -451,10 +488,12 @@ async function download(url, btn) {
 async function runVerify() {
   const btn = $("#btnVerify"); btn.disabled = true; $("#verifyResult").innerHTML = `<p class="hint">جارٍ المقارنة…</p>`;
   try {
-    const r = await api("POST", `/api/plans/${S.plan.id}/verify`);
+    const r = await api("POST", "/api/verify", { plan: S.plan });
+    const url = URL.createObjectURL(new Blob([r.report_html], { type: "text/html;charset=utf-8" }));
     $("#verifyResult").innerHTML = `<div class="msg ${r.passed ? "ok" : "err"}">${r.passed ? "✓ ناجح: التصميم لم يتغير" : "✘ يوجد اختلافات"}</div>
       <ul class="checks">${r.checks.map((c) => `<li><span class="${c.ok ? "y" : "n"}">${c.ok ? "✔" : "✘"}</span> ${esc(c.name)}</li>`).join("")}</ul>
-      <a href="${r.report_url}" target="_blank">فتح التقرير الكامل مع المقارنة البصرية صفحةً صفحة</a>`;
+      ${r.visual ? "" : `<p class="hint">المقارنة البصرية لصفحات PDF غير متاحة على هذا الخادم؛ نُفذت مقارنة الحزمة وXML والمقاييس كاملة.</p>`}
+      <a href="${url}" target="_blank" rel="noopener">فتح التقرير الكامل</a>`;
   } catch (e) { $("#verifyResult").innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
   btn.disabled = false;
 }
@@ -469,10 +508,13 @@ async function init() {
   $("#modal").onclick = (e) => { if (e.target.id === "modal") closeModal(); };
   $("#planSelect").onchange = (e) => openPlan(e.target.value);
   $("#btnNewPlan").onclick = newPlanDialog;
-  $("#btnDupPlan").onclick = async () => { setPlan(await api("POST", `/api/plans/${S.plan.id}/duplicate`)); toast("تم نسخ الخطة"); };
+  $("#btnDupPlan").onclick = () => {
+    const copy = JSON.parse(JSON.stringify(S.plan)); copy.id = uid("plan"); copy.name = (copy.name || "") + " (نسخة)";
+    setPlan({ plan: copy, derived: S.derived, unplaced: S.unplaced }); toast("تم نسخ الخطة");
+  };
   $("#btnDelPlan").onclick = async () => {
-    if (!confirm(`حذف الخطة «${S.plan.name}» نهائيًا؟`)) return;
-    await api("DELETE", `/api/plans/${S.plan.id}`); const list = await loadPlanList();
+    if (!confirm(`حذف الخطة «${S.plan.name}» نهائيًا من هذا المتصفح؟`)) return;
+    Store.remove(S.plan.id); S.plan = null; const list = loadPlanList();
     if (list.length) openPlan(list[0].id); else newPlanDialog();
   };
   $("#btnAddTeacher").onclick = () => {
@@ -485,22 +527,40 @@ async function init() {
   $("#btnAuto").onclick = async () => { clearTimeout(S.saveTimer); await save(true); renderSchedule(); toast("تم التوزيع التلقائي"); };
   $("#btnAutoReset").onclick = async () => {
     if (!confirm("حذف كل التعديلات اليدوية وإعادة التوزيع؟")) return;
-    const res = await api("POST", `/api/plans/${S.plan.id}/autoschedule?keep_manual=0`, S.plan);
-    S.plan.schedule = res.plan.schedule; S.derived = res.derived; S.unplaced = res.unplaced; renderSchedule();
+    const res = await api("POST", "/api/autoschedule?keep_manual=0", { plan: S.plan });
+    S.plan.schedule = res.plan.schedule; S.derived = res.derived; S.unplaced = res.unplaced; Store.save(S.plan); renderSchedule();
   };
   $("#btnPreview").onclick = preview;
-  $("#btnDocx").onclick = (e) => download(`/api/plans/${S.plan.id}/export/docx`, e.target);
-  $("#btnPdf").onclick = (e) => download(`/api/plans/${S.plan.id}/export/pdf`, e.target);
+  $("#btnDocx").onclick = (e) => download("/api/export/docx", e.target);
+  $("#btnPdf").onclick = (e) => download("/api/export/pdf", e.target);
+  $("#btnDb").onclick = (e) => download("/api/export/database.xlsx", e.target);
+  $("#btnProgCsv").onclick = (e) => download("/api/export/programs.csv", e.target);
+  $("#btnTeachCsv").onclick = (e) => download("/api/export/teachers.csv", e.target);
+  $("#btnTeachersCsv").onclick = (e) => download("/api/export/teachers.csv", e.target);
+  $("#btnBackup").onclick = () => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(S.plan, null, 1)], { type: "application/json" }));
+    a.download = `${S.plan.name || "خطة"}.json`; document.body.appendChild(a); a.click(); a.remove();
+  };
+  if (!S.meta.capabilities.pdf) {
+    $("#btnPdf").disabled = true; $("#btnPreview").disabled = true;
+    const note = `<p class="hint">تحويل PDF غير متاح على هذا الخادم. صدّر ملف Word ثم احفظه PDF من Microsoft Word (ملف ← حفظ باسم ← PDF) لنسخة مطابقة تمامًا.</p>`;
+    $("#pdfNote").innerHTML = note; $("#previewNote").innerHTML = note.replace("تحويل PDF", "المعاينة (تحويل PDF)");
+  }
+  if (!Store.persistent) toast("تخزين المتصفح معطل: لن تُحفظ الخطط بعد إغلاق الصفحة. استخدم النسخة الاحتياطية.", true);
   $("#btnVerify").onclick = runVerify;
   $("#restoreFile").onchange = async (e) => {
     const f = e.target.files[0]; e.target.value = ""; if (!f) return;
-    const fd = new FormData(); fd.append("file", f);
-    try { setPlan(await api("POST", "/api/plans/import-json", fd, true)); toast("تمت استعادة الخطة"); } catch (err) { toast(err.message, true); }
+    try {
+      const plan = JSON.parse(await f.text()); if (!plan || !plan.school) throw new Error("ملف الخطة غير صالح");
+      plan.id = uid("plan");
+      const res = await api("POST", "/api/derive", { plan }); setPlan({ plan, derived: res.derived }); toast("تمت استعادة الخطة");
+    } catch (err) { toast(err.message || "ملف الخطة غير صالح", true); }
   };
-  const list = await loadPlanList();
-  let last = null; try { last = localStorage.getItem("lastPlan"); } catch (e) { /* اختياري */ }
+  const list = loadPlanList();
+  const last = Store.last();
   if (list.length) await openPlan(list.some((p) => p.id === last) ? last : list[0].id);
-  else { const res = await api("POST", "/api/plans", { name: "خطة جديدة", from_template: true }); setPlan(res); }
+  else { const res = await api("POST", "/api/plans/new", { name: "خطة جديدة", from_template: true }); setPlan(res); }
   goStep("school");
 }
 init().catch((e) => toast(e.message, true));

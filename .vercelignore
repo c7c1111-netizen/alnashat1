@@ -1,0 +1,10 @@
+# لا حاجة لها في الخادم السحابي (تقلل حجم الدالة)
+activity_plan/output
+activity_plan/tests
+activity_plan/tools
+activity_plan/docs
+activity_plan/fonts/generated
+activity_plan/run.sh
+activity_plan/run.bat
+**/__pycache__
+**/.pytest_cache

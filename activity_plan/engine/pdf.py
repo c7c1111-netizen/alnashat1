@@ -37,11 +37,40 @@ def _soffice():
     return None
 
 
+def _generated_dir():
+    """مجلد الخط البديل المولَّد: داخل المشروع إن كان قابلًا للكتابة، وإلا مجلد مؤقت
+    (أنظمة الملفات للقراءة فقط كما في الخوادم السحابية)."""
+    d = os.path.join(FONTS_DIR, "generated")
+    try:
+        os.makedirs(d, exist_ok=True)
+        if os.access(d, os.W_OK):
+            return d
+    except OSError:
+        pass
+    d = os.path.join(tempfile.gettempdir(), "activity-plan-fonts")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def available() -> bool:
+    """هل يمكن تحويل PDF في هذه البيئة؟ (غير متاح مثلًا على Vercel)."""
+    if os.environ.get("PDF_ENGINE", "").lower() == "none":
+        return False
+    if os.name == "nt":
+        try:
+            import docx2pdf  # noqa: F401
+            return True
+        except ImportError:
+            pass
+    return _soffice() is not None
+
+
 def _fontconfig_file(tmpdir):
     """ملف fontconfig يضم مجلد خطوط المشروع + جدول البدائل."""
     src = os.path.join(FONTS_DIR, "fonts.conf")
     with open(src, encoding="utf-8") as f:
-        conf = f.read().replace("@FONTS_DIR@", FONTS_DIR).replace("@CACHE_DIR@", os.path.join(tmpdir, "fc-cache"))
+        conf = (f.read().replace("@FONTS_DIR@", FONTS_DIR).replace("@GEN_DIR@", _generated_dir())
+                .replace("@CACHE_DIR@", os.path.join(tmpdir, "fc-cache")))
     path = os.path.join(tmpdir, "fonts.conf")
     with open(path, "w", encoding="utf-8") as f:
         f.write(conf)
@@ -54,7 +83,7 @@ def convert_with_libreoffice(docx_path, pdf_path, timeout=240):
         raise PdfError("LibreOffice غير مثبت. ثبّته أو استخدم Microsoft Word للتحويل.")
     try:
         from .fallback_fonts import ensure
-        ensure(os.path.join(FONTS_DIR, "generated"))
+        ensure(_generated_dir())
     except Exception:  # الخط البديل تحسين اختياري
         pass
     with tempfile.TemporaryDirectory() as tmp:
@@ -87,6 +116,8 @@ def convert_with_word(docx_path, pdf_path):
 
 def to_pdf(docx_path, pdf_path) -> str:
     engine = os.environ.get("PDF_ENGINE", "auto").lower()
+    if engine == "none":
+        raise PdfError("تحويل PDF غير متاح في هذه البيئة.")
     if engine in ("word", "auto") and os.name == "nt" or engine == "word":
         try:
             return convert_with_word(docx_path, pdf_path)
@@ -108,3 +139,17 @@ def render_pages(pdf_path, out_dir, dpi=80, prefix="page"):
         page.get_pixmap(dpi=dpi).save(p)
         paths.append(p)
     return paths
+
+
+def render_pages_inline(pdf_path, dpi=80, quality=80) -> list[str]:
+    """صور الصفحات كـ data URLs (JPEG) لإرسالها مباشرة في الاستجابة دون حفظ ملفات
+    على الخادم (مناسب للخوادم عديمة الحالة)."""
+    import base64
+
+    import pymupdf
+
+    out = []
+    for page in pymupdf.open(pdf_path):
+        data = page.get_pixmap(dpi=dpi).tobytes("jpg", jpg_quality=quality)
+        out.append("data:image/jpeg;base64," + base64.b64encode(data).decode("ascii"))
+    return out

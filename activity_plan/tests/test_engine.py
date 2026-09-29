@@ -165,3 +165,16 @@ def test_import_samples(demo, st):
         res = importer.parse_programs(f, open(path, "rb").read(), demo, st)
         names = {p["name"] for p in res["programs"]}
         assert "حوكمة البيانات" in names and len(res["programs"]) == 15, f
+
+
+def test_manual_cell_counts_toward_sessions(demo, st):
+    plan = copy.deepcopy(demo)
+    p = next(x for x in plan["programs"] if x["name"] == "الخط العربي")
+    d = next(d for d in model.calendar_days(plan, st) if not d["blocked"])
+    plan["schedule"] = [e for e in plan["schedule"] if e["program_id"] != p["id"]] + [
+        {"week": d["week"], "day": d["day"], "slot": "p3", "program_id": p["id"], "grade": p["grades"],
+         "teacher_id": p["teacher_id"], "manual": True}]
+    res = model.auto_schedule(plan, st)
+    mine = [e for e in res["schedule"] if e["program_id"] == p["id"]]
+    assert len(mine) == p["sessions"]
+    assert sum(1 for e in mine if e["manual"]) == 1

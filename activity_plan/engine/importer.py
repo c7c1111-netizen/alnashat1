@@ -71,7 +71,7 @@ def _find_header(rows) -> tuple[int, dict] | None:
             k = _match_header(c)
             if k and k not in cols:
                 cols[k] = j
-        if "name" in cols and len(cols) >= 2:
+        if "name" in cols:  # عمود «اسم البرنامج» وحده يكفي؛ بقية الأعمدة اختيارية
             return i, cols
     return None
 
@@ -118,7 +118,10 @@ def _rows_csv(data: bytes):
             continue
     else:
         raise ValueError("تعذر قراءة ترميز ملف CSV")
-    dialect = csv.Sniffer().sniff(text[:2000], delimiters=",;\t") if text.strip() else csv.excel
+    try:
+        dialect = csv.Sniffer().sniff(text[:2000], delimiters=",;\t")
+    except csv.Error:  # عمود واحد أو ملف بلا فواصل واضحة
+        dialect = csv.excel
     return [[c.strip() for c in r] for r in csv.reader(io.StringIO(text), dialect)]
 
 

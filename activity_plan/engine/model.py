@@ -187,7 +187,11 @@ def auto_schedule(plan: dict, structure: dict) -> dict:
                 e["ord"], e["date"] = d["ord"], d["date"]
     taken = {(e["week"], e["day"], e["slot"]) for e in manual}
     teacher_busy = {(e["week"], e["day"], e["slot"], e.get("teacher_id")) for e in manual if e.get("teacher_id")}
-    manual_ids = {e["program_id"] for e in manual}
+    manual_count, manual_weeks = {}, {}
+    for e in manual:  # الخانات اليدوية تُحتسب من حصص البرنامج ويُكمل الباقي تلقائيًا
+        manual_count[e["program_id"]] = manual_count.get(e["program_id"], 0) + 1
+        wk = manual_weeks.setdefault(e["program_id"], {})
+        wk[e["week"]] = wk.get(e["week"], 0) + 1
     out = list(manual)
     unplaced = []
     teachers = {t["id"]: t for t in plan["teachers"]}
@@ -203,7 +207,7 @@ def auto_schedule(plan: dict, structure: dict) -> dict:
         return (_start_ord(p) or 0, 0 if p.get("mode") == "daily" else 1, p.get("name", ""))
 
     for p in sorted(plan["programs"], key=sort_key):
-        if p["id"] in manual_ids or not p.get("name"):
+        if not p.get("name"):
             continue
         start = _start_ord(p)
         end_h = hijri.try_parse(p.get("end"))
@@ -226,16 +230,16 @@ def auto_schedule(plan: dict, structure: dict) -> dict:
                 taken.add((d["week"], d["day"], slot))
                 out.append(entry(p, d, slot))
                 n += 1
-            if n == 0:
+            if n == 0 and not manual_count.get(p["id"]):
                 unplaced.append({"program": p["name"], "reason": "لا توجد أيام متاحة في الفترة المحددة"})
             continue
-        need = _int(p.get("sessions"))
+        need = _int(p.get("sessions")) - manual_count.get(p["id"], 0)
         if need <= 0:
             continue
         slots = [pref] if pref in CLASS_SLOTS or pref in SLOT_KEYS else CLASS_SLOTS
         placed = 0
         per_week = _int(p.get("per_week"), 1) or 1
-        week_count = {}
+        week_count = dict(manual_weeks.get(p["id"], {}))
         for o in sorted(by_ord):
             if placed >= need:
                 break
@@ -263,7 +267,8 @@ def auto_schedule(plan: dict, structure: dict) -> dict:
                 break
         if placed < need:
             unplaced.append({"program": p["name"],
-                             "reason": f"تم توزيع {placed} من {need} حصص فقط (لا توجد خانات متاحة كافية)"})
+                             "reason": f"تم توزيع {placed + manual_count.get(p['id'], 0)} من {_int(p.get('sessions'))} "
+                                       f"حصص فقط (لا توجد خانات متاحة كافية)"})
     out.sort(key=lambda e: (e.get("ord") or 0, SLOT_KEYS.index(e["slot"])))
     return {"schedule": out, "unplaced": unplaced}
 
