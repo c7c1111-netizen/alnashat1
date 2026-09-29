@@ -382,16 +382,27 @@ def _short(v):
     return s if len(s) < 140 else s[:137] + "..."
 
 
-def _html(rep) -> str:
+def report_html(rep, out_dir=None, embed_images=False) -> str:
+    """HTML التقرير؛ مع embed_images تُضمَّن صور الصفحات داخل الملف نفسه
+    (لإرساله كاملًا من خادم عديم الحالة)."""
+    return _html(rep, os.path.join(out_dir, "pages") if (embed_images and out_dir) else None)
+
+
+def _html(rep, embed_dir=None) -> str:
     rows = "".join(
         f"<tr class={'ok' if c['ok'] else 'bad'}><td>{'✔' if c['ok'] else '✘'}</td><td>{c['name']}</td>"
         f"<td class=d>{_esc(c['detail'])}</td></tr>" for c in rep["checks"])
     pages = ""
     for p in rep.get("visual", {}).get("pages", []):
         if p.get("image"):
+            src = f"pages/{p['image']}"
+            if embed_dir:
+                import base64
+                with open(os.path.join(embed_dir, p["image"]), "rb") as f:
+                    src = "data:image/png;base64," + base64.b64encode(f.read()).decode("ascii")
             pages += (f"<figure><figcaption>صفحة {p['page']} — تغير البكسلات: {p.get('pixel_diff_pct')}% "
                       f"(خارج النص: {p.get('non_text_diff_pct')}%) — المتجهات {'متطابقة' if p['vectors_equal'] else 'مختلفة'}"
-                      f"</figcaption><img src='pages/{p['image']}' loading=lazy></figure>")
+                      f"</figcaption><img src='{src}' loading=lazy></figure>")
     viol = "".join(f"<li>{_esc(v['issue'])} <code>{_esc(v['path'])}</code></li>" for v in rep.get("xml_violations", []))
     status = "ناجح ✔ — التصميم لم يتغير" if rep["passed"] else "يوجد اختلافات ✘"
     return f"""<!doctype html><html lang=ar dir=rtl><meta charset=utf-8>

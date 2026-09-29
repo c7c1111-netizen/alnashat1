@@ -71,7 +71,7 @@
     <h2>المعلمون <small class="hint">عدد الحصص الممكن الاستفادة منها = عدد حصص المادة × 10% (تقريب لأسفل)</small></h2>
     <div class="toolbar">
       <button id="btnAddTeacher">+ إضافة معلم</button>
-      <a class="btn ghost" id="lnkTeachersCsv">تصدير المعلمين CSV</a>
+      <button class="ghost" id="btnTeachersCsv">تصدير المعلمين CSV</button>
     </div>
     <div class="split">
       <div class="table-wrap"><table class="data" id="teachersTable"></table></div>
@@ -119,6 +119,7 @@
     <h3>برامج النشاط حسب المجال</h3>
     <div class="table-wrap"><table class="data" id="domainTable"></table></div>
     <div class="toolbar"><button id="btnPreview">معاينة الخطة</button><span class="hint">المعاينة هي صفحات ملف Word الناتج نفسه بعد تحويله.</span></div>
+    <div id="previewNote"></div>
     <div id="previewBox" class="preview"></div>
   </section>
 
@@ -135,6 +136,7 @@
         <h3>ملف PDF</h3>
         <p>للمعاينة والطباعة (يُحوَّل من ملف Word الناتج).</p>
         <button id="btnPdf">تصدير PDF</button>
+        <div id="pdfNote"></div>
       </div>
       <div class="card big">
         <h3>اختبار التطابق</h3>
@@ -144,9 +146,10 @@
       </div>
       <div class="card big">
         <h3>قواعد البيانات والنسخ الاحتياطي</h3>
-        <p><a id="lnkDb">قاعدة بيانات البرامج والمعلمين (Excel)</a></p>
-        <p><a id="lnkProgCsv">البرامج CSV</a> · <a id="lnkTeachCsv">المعلمون CSV</a></p>
-        <p><a id="lnkBackup">نسخة احتياطية من الخطة (JSON)</a></p>
+        <p><button class="ghost small" id="btnDb">قاعدة بيانات البرامج والمعلمين (Excel)</button></p>
+        <p><button class="ghost small" id="btnProgCsv">البرامج CSV</button> <button class="ghost small" id="btnTeachCsv">المعلمون CSV</button></p>
+        <p><button class="ghost small" id="btnBackup">نسخة احتياطية من الخطة (JSON)</button></p>
+        <p class="hint">الخطط محفوظة في هذا المتصفح فقط؛ احتفظ بنسخة احتياطية لنقلها لجهاز آخر.</p>
         <label class="btn ghost file">استعادة خطة من نسخة احتياطية<input type="file" id="restoreFile" accept=".json"></label>
       </div>
     </div>

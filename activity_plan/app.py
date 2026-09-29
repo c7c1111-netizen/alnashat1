@@ -1,51 +1,74 @@
 """منشئ خطة النشاط الطلابي — الخادم (Flask).
 
-التشغيل:
+الخادم عديم الحالة: الخطط تُحفظ في متصفح المستخدم، وكل طلب يرسل الخطة كاملة
+في جسمه. لذلك يعمل كما هو محليًا وعلى الخوادم السحابية (مثل Vercel) حيث نظام
+الملفات للقراءة فقط وقد يخدم كل طلب نسخةٌ مختلفة من الخادم.
+
+التشغيل المحلي:
     pip install -r requirements.txt
     python app.py          ثم افتح http://127.0.0.1:5000
 """
 from __future__ import annotations
 
-import copy
 import io
 import json
 import os
-import shutil
 import tempfile
-import time
-import uuid
 
-from flask import Flask, abort, jsonify, request, send_file, send_from_directory
+from flask import Flask, jsonify, request, send_file, send_from_directory
 
-from engine import exporter, hijri, importer, model, service, store
-from engine.pdf import PdfError, render_pages
+from engine import exporter, hijri, importer, model, pdf, service
+from engine.pdf import PdfError
 from engine.seed import plan_from_template
 from engine.template_map import SLOT_LABELS
-from engine.verify import verify
+from engine.verify import report_html, verify
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(ROOT, "static")
-WORK = os.path.join(ROOT, "output", "work")
+REPO_ROOT = os.path.dirname(ROOT)
 
 app = Flask(__name__, static_folder=None)
 app.json.sort_keys = False  # الإبقاء على ترتيب الحصص والمراحل كما هو
-app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
-_IMPORTS: dict[str, dict] = {}
+# Vercel يحد جسم الطلب بـ 4.5MB؛ نرفض ما هو أكبر برسالة واضحة
+app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_UPLOAD_MB", "4")) * 1024 * 1024
 
 
 def _err(msg, code=400, **extra):
     return jsonify({"error": msg, **extra}), code
 
 
-def _payload(plan):
-    return {"plan": plan, "derived": service.enrich(plan)}
+def _plan_from_request():
+    """الخطة المرسلة من المتصفح (JSON أو حقل plan في نموذج رفع ملف)."""
+    if request.is_json:
+        body = request.get_json(silent=True) or {}
+        plan = body.get("plan", body)
+    else:
+        plan = json.loads(request.form.get("plan") or "{}")
+    if not isinstance(plan, dict) or not plan:
+        raise ValueError("لم تُرسل بيانات الخطة")
+    return model.normalize_plan(plan)
 
 
-def _plan_or_404(pid):
-    try:
-        return store.load(pid)
-    except (FileNotFoundError, ValueError):
-        abort(404)
+def _body():
+    return request.get_json(silent=True) or {}
+
+
+def _payload(plan, **extra):
+    return {"plan": plan, "derived": service.enrich(plan), **extra}
+
+
+@app.errorhandler(ValueError)
+def _value_error(e):
+    return _err(str(e))
+
+
+@app.errorhandler(413)
+def _too_large(_e):
+    return _err("الملف أكبر من الحد المسموح (4MB).", 413)
+
+
+def _send_bytes(data: bytes, name: str, mimetype: str):
+    return send_file(io.BytesIO(data), mimetype=mimetype, as_attachment=True, download_name=name)
 
 
 # ---------------------------------------------------------------------------
@@ -59,6 +82,22 @@ def index():
 @app.get("/static/<path:name>")
 def static_files(name):
     return send_from_directory(STATIC, name)
+
+
+@app.get("/legacy")
+def legacy():
+    """التطبيق السابق الموجود في المستودع (index.html) — للرجوع إليه."""
+    return send_from_directory(REPO_ROOT, "index.html")
+
+
+@app.get("/samples/<path:name>")
+def samples(name):
+    return send_from_directory(os.path.join(ROOT, "samples"), name, as_attachment=True)
+
+
+@app.get("/api/health")
+def health():
+    return jsonify({"ok": True, "pdf": pdf.available()})
 
 
 @app.get("/api/meta")
@@ -76,6 +115,7 @@ def meta():
         "class_slots": model.CLASS_SLOTS,
         "library": library,
         "quota_rate": model.QUOTA_RATE,
+        "capabilities": {"pdf": pdf.available(), "storage": "browser"},
     })
 
 
@@ -90,91 +130,47 @@ def hijri_info():
 
 
 # ---------------------------------------------------------------------------
-# الخطط
+# إنشاء الخطط وحساباتها
 # ---------------------------------------------------------------------------
-@app.get("/api/plans")
-def plans_list():
-    return jsonify(store.list_plans())
-
-
-@app.post("/api/plans")
-def plans_create():
-    body = request.get_json(silent=True) or {}
-    if body.get("from_template", True):
+@app.post("/api/plans/new")
+def plans_new():
+    body = _body()
+    if body.get("demo"):
+        with open(os.path.join(ROOT, "data", "plans", "demo_abubakr.json"), encoding="utf-8") as f:
+            plan = model.normalize_plan(json.load(f))
+        plan["id"] = model.new_id("plan")
+    elif body.get("from_template", True):
         plan = plan_from_template(service.TEMPLATE, service.structure())
     else:
         plan = model.default_plan()
-    plan["name"] = body.get("name") or "خطة جديدة"
-    plan["schedule"] = model.auto_schedule(plan, service.structure())["schedule"]
-    plan = store.save(plan)
+    if body.get("name"):
+        plan["name"] = body["name"]
+    if not body.get("demo"):
+        plan["schedule"] = model.auto_schedule(plan, service.structure())["schedule"]
     return jsonify(_payload(plan))
 
 
-@app.get("/api/plans/<pid>")
-def plans_get(pid):
-    return jsonify(_payload(_plan_or_404(pid)))
+@app.post("/api/derive")
+def derive():
+    return jsonify({"derived": service.enrich(_plan_from_request())})
 
 
-@app.put("/api/plans/<pid>")
-def plans_put(pid):
-    plan = request.get_json(force=True)
-    if plan.get("id") != pid:
-        return _err("معرّف الخطة غير متطابق")
-    return jsonify(_payload(store.save(plan)))
-
-
-@app.delete("/api/plans/<pid>")
-def plans_delete(pid):
-    store.delete(pid)
-    return jsonify({"ok": True})
-
-
-@app.post("/api/plans/<pid>/duplicate")
-def plans_duplicate(pid):
-    plan = copy.deepcopy(_plan_or_404(pid))
-    plan["id"] = model.new_id("plan")
-    plan["name"] = plan.get("name", "") + " (نسخة)"
-    return jsonify(_payload(store.save(plan)))
-
-
-@app.post("/api/plans/import-json")
-def plans_import_json():
-    f = request.files.get("file")
-    if not f:
-        return _err("لم يُرفع ملف")
-    try:
-        plan = json.loads(f.read().decode("utf-8"))
-    except Exception:  # noqa: BLE001
-        return _err("ملف الخطة غير صالح")
-    plan["id"] = model.new_id("plan")
-    return jsonify(_payload(store.save(plan)))
-
-
-@app.get("/api/plans/<pid>/backup.json")
-def plans_backup(pid):
-    plan = _plan_or_404(pid)
-    data = json.dumps(plan, ensure_ascii=False, indent=1).encode("utf-8")
-    return send_file(io.BytesIO(data), mimetype="application/json", as_attachment=True,
-                     download_name=f"{plan.get('name', 'plan')}.json")
-
-
-@app.post("/api/plans/<pid>/autoschedule")
-def plans_autoschedule(pid):
-    plan = request.get_json(silent=True) or _plan_or_404(pid)
+@app.post("/api/autoschedule")
+def autoschedule():
+    plan = _plan_from_request()
     if request.args.get("keep_manual", "1") == "0":
         plan["schedule"] = []
     res = model.auto_schedule(plan, service.structure())
     plan["schedule"] = res["schedule"]
-    plan = store.save(plan)
-    return jsonify({**_payload(plan), "unplaced": res["unplaced"]})
+    return jsonify(_payload(plan, unplaced=res["unplaced"]))
 
 
 # ---------------------------------------------------------------------------
-# استيراد البرامج
+# استيراد البرامج: القراءة أولًا (لعرض التعارضات)، ثم التطبيق بعد الموافقة
 # ---------------------------------------------------------------------------
-@app.post("/api/plans/<pid>/import")
-def import_parse(pid):
-    plan = _plan_or_404(pid)
+@app.post("/api/import")
+def import_parse():
+    plan = _plan_from_request()
     f = request.files.get("file")
     if not f:
         return _err("لم يُرفع ملف")
@@ -182,131 +178,113 @@ def import_parse(pid):
         res = importer.parse_programs(f.filename, f.read(), plan, service.structure())
     except Exception as e:  # noqa: BLE001
         return _err(f"تعذرت قراءة الملف: {e}")
-    token = uuid.uuid4().hex
-    _IMPORTS[token] = {"plan": pid, "programs": res["programs"], "t": time.time()}
-    return jsonify({**res, "token": token})
+    return jsonify(res)
 
 
-@app.post("/api/plans/<pid>/import/apply")
-def import_apply(pid):
-    body = request.get_json(force=True)
-    job = _IMPORTS.pop(body.get("token", ""), None)
-    if not job or job["plan"] != pid:
-        return _err("انتهت صلاحية عملية الاستيراد، ارفع الملف مرة أخرى.")
-    selected = set(body.get("selected") or [p["id"] for p in job["programs"]])
-    programs = [p for p in job["programs"] if p["id"] in selected and p.get("name")]
-    plan = importer.apply_import(_plan_or_404(pid), programs, body.get("mode", "merge"))
+@app.post("/api/import/apply")
+def import_apply():
+    body = _body()
+    plan = model.normalize_plan(body.get("plan") or {})
+    programs = [p for p in (body.get("programs") or []) if isinstance(p, dict) and p.get("name")]
+    plan = importer.apply_import(plan, programs, body.get("mode", "merge"))
     if body.get("schedule", True):
         plan["schedule"] = model.auto_schedule(plan, service.structure())["schedule"]
-    return jsonify(_payload(store.save(plan)))
+    return jsonify(_payload(plan))
 
 
 # ---------------------------------------------------------------------------
 # التصدير والمعاينة والتحقق
 # ---------------------------------------------------------------------------
-def _generate(plan, force=False):
+def _generate(plan, tmp, force=False):
     v = model.validate(plan, service.structure())
     if v["errors"] and not force:
         return None, v
-    out_dir = os.path.join(WORK, plan["id"])
-    os.makedirs(out_dir, exist_ok=True)
-    return service.generate_docx(plan, out_dir), v
+    return service.generate_docx(plan, tmp), v
 
 
-@app.get("/api/plans/<pid>/export/docx")
-def export_docx(pid):
-    plan = _plan_or_404(pid)
-    res, v = _generate(plan)
-    if res is None:
-        return _err("لا يمكن التصدير قبل تصحيح الأخطاء", errors=v["errors"])
-    return send_file(res["docx"], as_attachment=True, download_name=os.path.basename(res["docx"]))
+@app.post("/api/export/docx")
+def export_docx():
+    plan = _plan_from_request()
+    with tempfile.TemporaryDirectory() as tmp:
+        res, v = _generate(plan, tmp)
+        if res is None:
+            return _err("لا يمكن التصدير قبل تصحيح الأخطاء", errors=v["errors"])
+        with open(res["docx"], "rb") as f:
+            data = f.read()
+        name = os.path.basename(res["docx"])
+    return _send_bytes(data, name, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
 
-@app.get("/api/plans/<pid>/export/pdf")
-def export_pdf(pid):
-    plan = _plan_or_404(pid)
-    res, v = _generate(plan)
-    if res is None:
-        return _err("لا يمكن التصدير قبل تصحيح الأخطاء", errors=v["errors"])
-    try:
-        pdf = service.generate_pdf(res["docx"])
-    except PdfError as e:
-        return _err(str(e), 500)
-    return send_file(pdf["pdf"], as_attachment=True, download_name=os.path.basename(pdf["pdf"]))
-
-
-@app.post("/api/plans/<pid>/preview")
-def preview(pid):
-    plan = _plan_or_404(pid)
-    res, v = _generate(plan, force=True)
-    try:
-        pdf = service.generate_pdf(res["docx"])
-    except PdfError as e:
-        return _err(str(e), 500)
-    pdir = os.path.join(WORK, pid, "preview")
-    shutil.rmtree(pdir, ignore_errors=True)
-    pages = render_pages(pdf["pdf"], pdir, dpi=int(request.args.get("dpi", 90)))
-    stamp = int(time.time())
-    return jsonify({"pages": [f"/work/{pid}/preview/{os.path.basename(p)}?t={stamp}" for p in pages],
-                    "report": res["report"], "validation": v, "engine": pdf["engine"]})
-
-
-@app.get("/work/<pid>/preview/<name>")
-def preview_file(pid, name):
-    return send_from_directory(os.path.join(WORK, pid, "preview"), name)
-
-
-@app.post("/api/plans/<pid>/verify")
-def verify_plan(pid):
-    plan = _plan_or_404(pid)
-    res, v = _generate(plan, force=True)
-    vdir = os.path.join(WORK, pid, "verification")
-    shutil.rmtree(vdir, ignore_errors=True)
-    os.makedirs(vdir, exist_ok=True)
-    tpdf = opdf = None
-    if request.args.get("pdf", "1") == "1":
+@app.post("/api/export/pdf")
+def export_pdf():
+    if not pdf.available():
+        return _err("تحويل PDF غير متاح على هذا الخادم. صدّر ملف Word ثم احفظه PDF من Microsoft Word "
+                    "(ملف ← حفظ باسم ← PDF) للحصول على نسخة مطابقة تمامًا.", 501)
+    plan = _plan_from_request()
+    with tempfile.TemporaryDirectory() as tmp:
+        res, v = _generate(plan, tmp)
+        if res is None:
+            return _err("لا يمكن التصدير قبل تصحيح الأخطاء", errors=v["errors"])
         try:
-            tpdf = os.path.join(WORK, "master-template.pdf")
-            if not os.path.exists(tpdf) or os.path.getmtime(tpdf) < os.path.getmtime(service.TEMPLATE):
-                service.generate_pdf(service.TEMPLATE, tpdf)
-            opdf = service.generate_pdf(res["docx"])["pdf"]
-        except PdfError:
-            tpdf = opdf = None
-    rep = verify(service.TEMPLATE, res["docx"], tpdf, opdf, vdir)
-    return jsonify({"passed": rep["passed"], "checks": rep["checks"],
-                    "violations": rep.get("xml_violations", []),
-                    "report_url": f"/work/{pid}/verification/report.html"})
+            out = service.generate_pdf(res["docx"])
+        except PdfError as e:
+            return _err(str(e), 500)
+        with open(out["pdf"], "rb") as f:
+            data = f.read()
+        name = os.path.basename(out["pdf"])
+    return _send_bytes(data, name, "application/pdf")
 
 
-@app.get("/work/<pid>/verification/<path:name>")
-def verification_file(pid, name):
-    return send_from_directory(os.path.join(WORK, pid, "verification"), name)
+@app.post("/api/preview")
+def preview():
+    if not pdf.available():
+        return _err("المعاينة تتطلب تحويل PDF، وهو غير متاح على هذا الخادم. صدّر ملف Word وافتحه للمعاينة.", 501)
+    plan = _plan_from_request()
+    with tempfile.TemporaryDirectory() as tmp:
+        res, v = _generate(plan, tmp, force=True)
+        try:
+            out = service.generate_pdf(res["docx"])
+        except PdfError as e:
+            return _err(str(e), 500)
+        pages = pdf.render_pages_inline(out["pdf"], dpi=int(request.args.get("dpi", 72)), quality=72)
+    return jsonify({"pages": pages, "report": res["report"], "validation": v, "engine": out["engine"]})
 
 
-@app.get("/api/plans/<pid>/export/database.xlsx")
-def export_db(pid):
-    plan = _plan_or_404(pid)
-    return send_file(io.BytesIO(exporter.to_xlsx(plan)), as_attachment=True,
-                     download_name=f"قاعدة بيانات البرامج والمعلمين - {plan['school'].get('name') or plan['name']}.xlsx")
+@app.post("/api/verify")
+def verify_plan():
+    plan = _plan_from_request()
+    with tempfile.TemporaryDirectory() as tmp:
+        res, _v = _generate(plan, tmp, force=True)
+        vdir = os.path.join(tmp, "verification")
+        tpdf = opdf = None
+        if pdf.available() and request.args.get("pdf", "1") == "1":
+            try:
+                tpdf = service.generate_pdf(service.TEMPLATE, os.path.join(tmp, "master.pdf"))["pdf"]
+                opdf = service.generate_pdf(res["docx"])["pdf"]
+            except PdfError:
+                tpdf = opdf = None
+        rep = verify(service.TEMPLATE, res["docx"], tpdf, opdf, vdir)
+        html = report_html(rep, vdir, embed_images=True)
+    return jsonify({"passed": rep["passed"], "checks": rep["checks"], "visual": bool(tpdf),
+                    "violations": rep.get("xml_violations", []), "report_html": html})
 
 
-@app.get("/api/plans/<pid>/export/programs.csv")
-def export_programs_csv(pid):
-    plan = _plan_or_404(pid)
-    return send_file(io.BytesIO(exporter.programs_csv(plan)), mimetype="text/csv", as_attachment=True,
-                     download_name="البرامج.csv")
+@app.post("/api/export/database.xlsx")
+def export_db():
+    plan = _plan_from_request()
+    name = f"قاعدة بيانات البرامج والمعلمين - {plan['school'].get('name') or plan['name']}.xlsx"
+    return _send_bytes(exporter.to_xlsx(plan), name,
+                       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
-@app.get("/api/plans/<pid>/export/teachers.csv")
-def export_teachers_csv(pid):
-    plan = _plan_or_404(pid)
-    return send_file(io.BytesIO(exporter.teachers_csv(plan)), mimetype="text/csv", as_attachment=True,
-                     download_name="المعلمون.csv")
+@app.post("/api/export/programs.csv")
+def export_programs_csv():
+    return _send_bytes(exporter.programs_csv(_plan_from_request()), "البرامج.csv", "text/csv")
 
 
-@app.get("/samples/<path:name>")
-def samples(name):
-    return send_from_directory(os.path.join(ROOT, "samples"), name, as_attachment=True)
+@app.post("/api/export/teachers.csv")
+def export_teachers_csv():
+    return _send_bytes(exporter.teachers_csv(_plan_from_request()), "المعلمون.csv", "text/csv")
 
 
 if __name__ == "__main__":
