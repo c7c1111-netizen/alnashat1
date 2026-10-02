@@ -345,6 +345,13 @@
   .day-chip:has(input:checked){background:#0f3d3e; border-color:#0f3d3e; color:#fff;}
   @media print{ #daysField, #periodField, body:not(.printing-master) .master-card, .editing-note{display:none !important;} }
   .day-chip input[type=radio]{accent-color:#0f3d3e;}
+  .pd-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:8px 0; border-bottom:1px dashed #e2e2e2;}
+  .pd-row:last-child{border-bottom:none;}
+  .pd-day{min-width:78px; font-weight:800; font-size:15px; color:#0f3d3e;}
+  .pd-day small{display:block; font-weight:600; font-size:11.5px; color:#b9702f;}
+  .pd-chips{display:flex; gap:6px; flex-wrap:wrap;}
+  .pd-chips .day-chip{padding:7px 12px; font-size:14px;}
+  .pd-chips .day-chip input{width:16px; height:16px;}
 
   /* ===== ملف خطة برامج النشاط ===== */
   .editing-note{font-size:12.5px; color:#0f3d3e; margin-top:8px; min-height:0;}
@@ -673,16 +680,9 @@
   </div>
 
   <div class="field" id="periodField">
-    <label>الحصة في الجدول المدرسي <span style="font-weight:400;color:#777;font-size:12.5px;">(في أيام الحصتين المتتاليتين: الحصة الأولى منهما)</span></label>
-    <div class="day-chips" id="periodChips">
-      <label class="day-chip"><input type="radio" name="period" value="1"><span>الأولى</span></label>
-      <label class="day-chip"><input type="radio" name="period" value="2"><span>الثانية</span></label>
-      <label class="day-chip"><input type="radio" name="period" value="3"><span>الثالثة</span></label>
-      <label class="day-chip"><input type="radio" name="period" value="4"><span>الرابعة</span></label>
-      <label class="day-chip"><input type="radio" name="period" value="5"><span>الخامسة</span></label>
-      <label class="day-chip"><input type="radio" name="period" value="6"><span>السادسة</span></label>
-    </div>
-    <div class="sub-note" style="text-align:right;">على أساسها ينزل النشاط في خانته بالجدول الأسبوعي داخل ملف الخطة.</div>
+    <label>حصة النشاط في كل يوم <span style="font-weight:400;color:#777;font-size:12.5px;">(في أيام الحصتين المتتاليتين: اختر الأولى منهما)</span></label>
+    <div id="periodPerDay"></div>
+    <div class="sub-note" style="text-align:right;">لكل يوم نشاط اختر رقم الحصة، وعلى أساسها ينزل النشاط في خانته بالجدول الأسبوعي داخل ملف الخطة.</div>
   </div>
 
   <div class="field" id="scheduleWrap" style="display:none;">
@@ -1571,12 +1571,37 @@ const PATTERN_DAYS = {mon:['mon'], monwed:['mon','wed'], montuewed:['mon','tue',
 let activeDays = ['mon','wed'];
 
 // رقم الحصة (١–٦) اللي ينفّذ فيها النشاط
-function getPeriod(){
-  const r = document.querySelector('#periodChips input:checked');
-  return r ? parseInt(r.value, 10) : null;
+// حصة النشاط لكل يوم: {sun:3, mon:5, ...}
+let dayPeriods = {};
+const PERIOD_NAMES = ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة'];
+function renderPeriodPicker(){
+  const wrap = document.getElementById('periodPerDay');
+  if(!wrap) return;
+  const days = DAY_ORDER.filter(k => activeDays.includes(k));
+  wrap.innerHTML = days.map(k => `
+    <div class="pd-row">
+      <div class="pd-day">${DAY_NAMES[k]}${doubleDays.includes(k) ? '<small>حصتان متتاليتان</small>' : ''}</div>
+      <div class="pd-chips">${PERIOD_NAMES.map((nm, i) =>
+        `<label class="day-chip"><input type="radio" name="pd-${k}" value="${i+1}" ${dayPeriods[k] === i+1 ? 'checked' : ''}${doubleDays.includes(k) && i === 5 ? ' disabled' : ''}><span>${nm}</span></label>`).join('')}</div>
+    </div>`).join('');
+  wrap.querySelectorAll('input').forEach(r=>{
+    r.addEventListener('change', ()=>{ dayPeriods[r.name.slice(3)] = parseInt(r.value, 10); });
+  });
 }
-function setPeriod(n){
-  document.querySelectorAll('#periodChips input').forEach(r=>{ r.checked = String(r.value) === String(n); });
+// الحصص المختارة للأيام الفعّالة فقط، أو null إذا فيه يوم ما اختير له حصة
+function getDayPeriods(){
+  const out = {};
+  for(const k of DAY_ORDER.filter(k => activeDays.includes(k))){
+    if(!(dayPeriods[k] >= 1 && dayPeriods[k] <= 6)) return null;
+    out[k] = dayPeriods[k];
+  }
+  return out;
+}
+function setDayPeriods(v){
+  dayPeriods = {};
+  if(v && typeof v === 'object') Object.keys(v).forEach(k => { const n = parseInt(v[k], 10); if(n >= 1 && n <= 6) dayPeriods[k] = n; });
+  else if(parseInt(v, 10) >= 1) DAY_ORDER.forEach(k => { dayPeriods[k] = parseInt(v, 10); }); // خطط قديمة: حصة وحدة لكل الأيام
+  renderPeriodPicker();
 }
 // الأيام اللي يكون فيها حصتان متتاليتان من نفس النشاط (الحصة المرنة)، وباقي الأيام حصة واحدة
 let doubleDays = [];
@@ -1618,12 +1643,14 @@ function renderDoubleChips(){
   wrap.innerHTML = days.map(k =>
     `<label class="day-chip"><input type="checkbox" data-dd="${k}" ${doubleDays.includes(k) ? 'checked' : ''}><span>${DAY_NAMES[k]}</span></label>`
   ).join('');
+  renderPeriodPicker();
   wrap.querySelectorAll('input').forEach(cb=>{
     cb.addEventListener('change', ()=>{
       doubleDays = DAY_ORDER.filter(k => {
         const el = wrap.querySelector(`input[data-dd="${k}"]`);
         return el ? el.checked : doubleDays.includes(k);
       });
+      renderPeriodPicker();
       syncWeeklyUI();
       updateSchedule();
       updatePreview();
@@ -2055,7 +2082,7 @@ window.addEventListener('afterprint', ()=>{
 
 document.getElementById('resetBtn').addEventListener('click', ()=>{
   ['actName','goal','date','time','place','tools','steps','notes','teacherSubject','teacherCap'].forEach(id=>document.getElementById(id).value='');
-  setPeriod('');
+  setDayPeriods(null);
   setEditing(null);
   gradeEl.value = '';
   doubleDays = [];
@@ -2202,7 +2229,7 @@ function collectPlanFromForm(){
     savedAt: new Date().toISOString(),
     grade: gradeEl.value,
     days: [...activeDays],
-    period: getPeriod(),
+    periods: getDayPeriods() || Object.assign({}, dayPeriods),
     subject: document.getElementById('teacherSubject').value.trim(),
     cap: document.getElementById('teacherCap').value.trim(),
     doubleDays: [...doubleDays],
@@ -2247,7 +2274,7 @@ function applyPlanToForm(plan){
     document.getElementById('teacherSubject').value = plan.subject || '';
     document.getElementById('teacherCap').value = plan.cap || '';
   }
-  setPeriod(plan.period || '');
+  setDayPeriods(plan.periods || plan.period || null);
 
   selectedDomains = [...(plan.selectedDomains || [])];
   domainChecklistEl.querySelectorAll('input[type=checkbox]').forEach(cb=>{
@@ -2357,8 +2384,9 @@ document.getElementById('savePlanBtn').addEventListener('click', async ()=>{
     if(!gradeEl.value){ alert('اختر الصف أولًا.'); return; }
     if(!teacherEl.value.trim()){ alert('اكتب اسم المعلم أولًا.'); return; }
     if(!selectedPrograms.length){ alert('اختر برنامجًا واحدًا على الأقل.'); return; }
-    if(!getPeriod()){
-      alert('اختر «الحصة في الجدول المدرسي» (الخطوة ٣) عشان ينزل النشاط في خانته بالجدول الأسبوعي.');
+    if(!getDayPeriods()){
+      const miss = DAY_ORDER.filter(k => activeDays.includes(k) && !dayPeriods[k]).map(k => DAY_NAMES[k]).join('، ');
+      alert(`اختر حصة النشاط لكل يوم (الخطوة ٣). باقي: ${miss}`);
       document.getElementById('periodField').scrollIntoView({behavior:'smooth', block:'center'});
       return;
     }
@@ -2500,8 +2528,15 @@ function buildMasterModel(plans){
     const dd = Array.isArray(plan.doubleDays) ? plan.doubleDays : (plan.double ? days : []);
     const capFn = s => dd.includes(DAY_KEY_BY_NAME[s.day]) ? 2 : 1;
     const {results} = allocateSchedule(progs, dateListFor(stage, days).list, capFn);
-    const period = parseInt(plan.period, 10);
-    if(!(period >= 1 && period <= 6)) noPeriod.push(`${shortGrade(plan.grade)} — ${teacher || 'بدون معلم'}`);
+    // حصة النشاط لكل يوم (أو حصة وحدة لكل الأيام في الخطط القديمة)
+    const periodOf = s => {
+      const k = DAY_KEY_BY_NAME[s.day];
+      const v = plan.periods && plan.periods[k] != null ? plan.periods[k] : plan.period;
+      const n = parseInt(v, 10);
+      return n >= 1 && n <= 6 ? n : null;
+    };
+    const missingDays = days.filter(k => !periodOf({day: DAY_KEYS[k]}));
+    if(missingDays.length) noPeriod.push(`${shortGrade(plan.grade)} — ${teacher || 'بدون معلم'} (${missingDays.map(k => DAY_NAMES[k]).join('، ')})`);
 
     results.forEach(({prog, slots, counts, shortage})=>{
       counts = counts || slots.map(()=>1);
@@ -2521,10 +2556,11 @@ function buildMasterModel(plans){
       if(shortage) warnings.push(`«${prog.name}» (${shortGrade(plan.grade)}) ما لقى أيام كافية لكل حصصه.`);
       totalSessions += counts.reduce((x, y) => x + y, 0);
       // الجدول الأسبوعي
-      if(period >= 1 && period <= 6){
+      {
         slots.forEach((s, si)=>{
           const d = dayIndex[s.date];
-          if(!d) return;
+          const period = periodOf(s);
+          if(!d || !period) return;
           // في أيام الحصتين المتتاليتين ينزل النشاط في الحصة المختارة واللي بعدها
           for(let k = 0; k < (counts[si] || 1); k++){
             if(period + k <= 6) d.cells[period - 1 + k].push({program:prog.name, grade:shortGrade(plan.grade), teacher, domain:prog.domain});
@@ -2542,7 +2578,7 @@ function buildMasterModel(plans){
       if(seen[t] > 1) warnings.push(`تعارض: ${t} عنده ${arNum(seen[t])} أنشطة في نفس الحصة (${M_PERIODS[i]}) يوم ${DAY_NAMES[DAY_ORDER.find(k=>DAY_KEYS[k]===d.day)] || d.day} ${hijriShort(d.h)}.`);
     });
   })));
-  if(noPeriod.length) warnings.push(`خطط بدون رقم حصة (ما تظهر في الجدول الأسبوعي): ${noPeriod.join('، ')}`);
+  if(noPeriod.length) warnings.push(`خطط ناقصها رقم الحصة لبعض الأيام (ما تظهر في الجدول الأسبوعي): ${noPeriod.join('، ')}`);
 
   // ترتيب الإسناد: حسب المعلم ثم تاريخ البداية، مع حساب المتبقي من نسبة ١٠٪
   const order = [];
