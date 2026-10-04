@@ -364,6 +364,12 @@
   .m-warn{font-size:12.5px; color:#8a5a1f; margin-top:10px; line-height:1.8;}
   .m-warn:empty{display:none;}
   .m-warn div{background:#fdf3e7; border:1px solid #f0d3a8; border-radius:6px; padding:6px 10px; margin-top:6px;}
+  .m-edit-bar{margin-top:12px; background:#fff8e6; border:1px solid #f0d58a; border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.8;}
+  .m-tbl td.m-edit{cursor:text; outline:1px dashed #9cb8b6; outline-offset:-3px; min-height:18px;}
+  .m-tbl td.m-edit:hover{background:#f3faf9;}
+  .m-tbl td.m-edit:focus{outline:2px solid #0f3d3e; background:#fff;}
+  .m-tbl td.m-ov{background:#fff4c7 !important;}
+  @media print{ .m-tbl td.m-edit{outline:none !important;} .m-tbl td.m-ov{background:transparent !important;} .m-edit-bar{display:none !important;} }
   .m-viewer{margin-top:14px; background:#dfe7e6; border-radius:10px; padding:12px; overflow:auto; max-height:80vh;}
 
   #masterDoc{color:#111; direction:rtl;}
@@ -595,12 +601,9 @@
         <label for="teacherSubject">مادة التدريس</label>
         <input type="text" id="teacherSubject" placeholder="مثال: لغتي / رياضيات">
       </div>
-      <div class="field" style="margin-bottom:0;">
-        <label for="teacherCap">الحصص المتاحة من نسبة ١٠٪</label>
-        <input type="text" id="teacherCap" inputmode="numeric" placeholder="مثال: 12">
-      </div>
+
     </div>
-    <div class="sub-note" style="text-align:right;">المادة والنسبة تنحفظ مع اسم المعلم، وتظهر في «جدول إسناد برامج النشاط للمعلمين» بالملف.</div>
+    <div class="sub-note" style="text-align:right;">المادة تنحفظ مع اسم المعلم، وتظهر في «جدول إسناد برامج النشاط للمعلمين» بالملف.</div>
   </div>
 
   <!-- ===== الخطوة 2: المجال والنشاط ===== -->
@@ -647,6 +650,7 @@
     </div>
     <div class="sub-note" id="manualHint" style="text-align:right;display:none;">
       يطلع الجدول بكل حصص الفصل والمجال والنشاط فاضيين. اضغط على الخانة واكتب بنفسك، أو اطبعه أو نزّله Word وعبّه بخط اليد.
+      ولتعبئة جداول ملف الخطة نفسه يدويًا (الجدول الأسبوعي وجدول الإسناد) استخدم «✍️ تعبئة الجدول يدويًا» في الخطوة ٥.
     </div>
     <div id="manualBlankWrap" style="display:none;margin-top:10px;">
       <div class="day-chips">
@@ -828,11 +832,21 @@
     </div>
     <div class="actions" style="margin-top:10px;">
       <button class="btn btn-secondary" id="toggleMasterBtn">👁️ عرض الملف</button>
+      <button class="btn btn-secondary" id="manualFillBtn">✍️ تعبئة الجدول يدويًا</button>
       <button class="btn btn-secondary" id="backupBtn">🗂️ نسخة احتياطية</button>
       <button class="btn btn-secondary" id="restoreBtn">↩️ استرجاع</button>
       <input type="file" id="restoreInput" accept=".json,application/json" style="display:none;">
     </div>
     <div class="sub-note" style="text-align:right;margin-top:8px;">ملف Word يطلع من ملفك الأصلي نفسه طبق الأصل، ولـ PDF طبق الأصل افتحه في تطبيق Word ← تصدير PDF. («PDF سريع» نسخة مقاربة للمعاينة.)<br>كل خطة تحفظها تنضاف للملف مباشرة. الخطط محفوظة على هذا الجهاز فقط، فخذ «نسخة احتياطية» بين فترة وفترة.</div>
+    <div class="m-edit-bar" id="manualFillBar" style="display:none;">
+      <div>✍️ <b>وضع التعبئة اليدوية:</b> اضغط على أي خانة في الجدول الأسبوعي أو جدول الإسناد واكتب ما تريد (البرنامج، الصف، اسم المعلم…).
+        ما تكتبه يُحفظ تلقائيًا وينزل كما هو في ملف Word، ويتقدّم على التعبئة التلقائية. الخانات المعدّلة يدويًا تظهر بلون مميز.
+        لسطر جديد داخل الخانة اضغط Shift+Enter.</div>
+      <div class="actions" style="margin-top:8px;">
+        <button class="btn btn-secondary" id="manualFillDoneBtn">✔️ إنهاء التعبئة اليدوية</button>
+        <button class="btn btn-secondary" id="manualFillClearBtn">🧹 مسح كل التعبئة اليدوية</button>
+      </div>
+    </div>
     <div class="m-viewer" id="masterViewer" style="display:none;">
       <div id="masterDoc"></div>
     </div>
@@ -974,7 +988,8 @@ function defaultSettings(){
     overrides:{},
     directorName:'',
     leaderName:'',
-    teacherInfo:{}   // {اسم المعلم: {subject, cap}}
+    teacherInfo:{},  // {اسم المعلم: {subject}}
+    manualCells:{}   // التعبئة اليدوية لجداول الملف: مفتاح الخانة ← النص
   };
 }
 let settings = defaultSettings();
@@ -1074,7 +1089,8 @@ async function loadSettings(){
       overrides: (o.overrides && typeof o.overrides === 'object') ? o.overrides : d.overrides,
       directorName: typeof o.directorName === 'string' ? o.directorName : '',
       leaderName: typeof o.leaderName === 'string' ? o.leaderName : '',
-      teacherInfo: (o.teacherInfo && typeof o.teacherInfo === 'object') ? o.teacherInfo : {}
+      teacherInfo: (o.teacherInfo && typeof o.teacherInfo === 'object') ? o.teacherInfo : {},
+      manualCells: (o.manualCells && typeof o.manualCells === 'object') ? o.manualCells : {}
     };
   }catch(e){}
 }
@@ -1260,23 +1276,21 @@ gradeEl.addEventListener('change', ()=>{
 });
 
 // ===== المعلم =====
-// مادة المعلم وحصص الـ ١٠٪ تنحفظ مع اسمه، وتتعبّى تلقائيًا كل ما اخترته
+// مادة المعلم تنحفظ مع اسمه، وتتعبّى تلقائيًا كل ما اخترته
 function fillTeacherInfo(){
   const info = settings.teacherInfo[teacherEl.value.trim()];
   document.getElementById('teacherSubject').value = info ? (info.subject || '') : '';
-  document.getElementById('teacherCap').value = info ? (info.cap || '') : '';
 }
 function storeTeacherInfo(){
   const name = teacherEl.value.trim();
   if(!name) return;
   const subject = document.getElementById('teacherSubject').value.trim();
-  const cap = document.getElementById('teacherCap').value.trim();
-  if(!subject && !cap){ delete settings.teacherInfo[name]; }
-  else settings.teacherInfo[name] = {subject, cap};
+  if(!subject){ delete settings.teacherInfo[name]; }
+  else settings.teacherInfo[name] = {subject};
   persistSoon();
   refreshMasterSoon();
 }
-['teacherSubject','teacherCap'].forEach(id=>{
+['teacherSubject'].forEach(id=>{
   document.getElementById(id).addEventListener('input', storeTeacherInfo);
 });
 teacherEl.addEventListener('input', ()=>{ fillTeacherInfo(); updateSchedule(); updatePreview(); });
@@ -2081,7 +2095,7 @@ window.addEventListener('afterprint', ()=>{
 });
 
 document.getElementById('resetBtn').addEventListener('click', ()=>{
-  ['actName','goal','date','time','place','tools','steps','notes','teacherSubject','teacherCap'].forEach(id=>document.getElementById(id).value='');
+  ['actName','goal','date','time','place','tools','steps','notes','teacherSubject'].forEach(id=>document.getElementById(id).value='');
   setDayPeriods(null);
   setEditing(null);
   gradeEl.value = '';
@@ -2231,7 +2245,6 @@ function collectPlanFromForm(){
     days: [...activeDays],
     periods: getDayPeriods() || Object.assign({}, dayPeriods),
     subject: document.getElementById('teacherSubject').value.trim(),
-    cap: document.getElementById('teacherCap').value.trim(),
     doubleDays: [...doubleDays],
     manual: manualMode,
     manualBlank: manualBlank,
@@ -2270,9 +2283,8 @@ function applyPlanToForm(plan){
 
   teacherEl.value = plan.teacher || '';
   fillTeacherInfo();
-  if(!settings.teacherInfo[teacherEl.value.trim()] && (plan.subject || plan.cap)){
+  if(!settings.teacherInfo[teacherEl.value.trim()] && plan.subject){
     document.getElementById('teacherSubject').value = plan.subject || '';
-    document.getElementById('teacherCap').value = plan.cap || '';
   }
   setDayPeriods(plan.periods || plan.period || null);
 
@@ -2391,6 +2403,11 @@ document.getElementById('savePlanBtn').addEventListener('click', async ()=>{
       return;
     }
   }
+  // إذا تغيّر الصف أو المعلم عن الخطة المفتوحة فهذه خطة جديدة، لا تُكتب فوق السابقة
+  if(currentPlanId && editingMeta &&
+     (editingMeta.grade !== gradeEl.value || editingMeta.teacher !== teacherEl.value.trim())){
+    setEditing(null);
+  }
   const wasEditing = !!currentPlanId;
   const plan = collectPlanFromForm();
   try{
@@ -2398,7 +2415,7 @@ document.getElementById('savePlanBtn').addEventListener('click', async ()=>{
     if(!ok) throw new Error('save failed');
     setEditing(plan);
     await refreshMaster();
-    alert(!forFile ? 'تم حفظ الخطة ✅ (الجدول اليدوي ما ينضاف لملف الخطة)' : wasEditing ? 'تم تحديث الخطة في الملف ✅' : 'تم حفظ الخطة وإضافتها للملف ✅');
+    alert(!forFile ? 'تم حفظ الخطة ✅ (هذا الجدول اليدوي للطباعة فقط؛ لتعبئة جداول ملف الخطة يدويًا استخدم «✍️ تعبئة الجدول يدويًا» في الخطوة ٥)' : wasEditing ? 'تم تحديث الخطة في الملف ✅' : 'تم حفظ الخطة وإضافتها للملف ✅');
     if(document.getElementById('savedPlansWrap').style.display !== 'none') renderSavedPlansList();
   }catch(e){
     alert('تعذر حفظ الخطة، جرّب مرة أخرى.');
@@ -2426,11 +2443,13 @@ document.getElementById('floatJumpBtn').addEventListener('click', ()=>{
 // ===================================================================
 // ===== ملف خطة برامج النشاط الطلابي (يتجمّع تلقائيًا من الخطط المحفوظة) =====
 // نفس تقسيم ملف الوزارة: الغلاف، مجالات النشاط، برامج النشاط لكل مرحلة،
-// جدول إسناد البرامج للمعلمين (١٠٪)، ثم جدول أسبوعي لكل أسبوع (البرنامج / الصف / المعلم)
+// جدول إسناد البرامج للمعلمين، ثم جدول أسبوعي لكل أسبوع (البرنامج / الصف / المعلم)
 // ===================================================================
 let currentPlanId = null;
+let editingMeta = null; // الصف والمعلم للخطة المفتوحة للتعديل
 function setEditing(plan){
   currentPlanId = plan ? plan.id : null;
+  editingMeta = plan ? {grade: plan.grade || '', teacher: (plan.teacher || '').trim()} : null;
   const el = document.getElementById('editingNote');
   if(!plan){ el.innerHTML = ''; return; }
   const t = plan.actName || (plan.selectedPrograms||[]).map(p=>p.name).join(' + ') || 'خطة';
@@ -2550,7 +2569,6 @@ function buildMasterModel(plans){
       assign.push({
         teacher, grade: shortGrade(plan.grade), program: prog.name, n,
         subject: (settings.teacherInfo[teacher] && settings.teacherInfo[teacher].subject) || plan.subject || '',
-        cap: (settings.teacherInfo[teacher] && settings.teacherInfo[teacher].cap) || plan.cap || '',
         startDate: first ? first.date : '9999', startH: first ? hijriShort(first.h) : '—'
       });
       if(shortage) warnings.push(`«${prog.name}» (${shortGrade(plan.grade)}) ما لقى أيام كافية لكل حصصه.`);
@@ -2580,19 +2598,10 @@ function buildMasterModel(plans){
   })));
   if(noPeriod.length) warnings.push(`خطط ناقصها رقم الحصة لبعض الأيام (ما تظهر في الجدول الأسبوعي): ${noPeriod.join('، ')}`);
 
-  // ترتيب الإسناد: حسب المعلم ثم تاريخ البداية، مع حساب المتبقي من نسبة ١٠٪
+  // ترتيب الإسناد: حسب المعلم ثم تاريخ البداية
   const order = [];
   assign.forEach(a => { if(!order.includes(a.teacher)) order.push(a.teacher); });
   assign.sort((a,b)=> order.indexOf(a.teacher) - order.indexOf(b.teacher) || a.startDate.localeCompare(b.startDate));
-  const used = {};
-  assign.forEach(a=>{
-    used[a.teacher] = (used[a.teacher] || 0) + a.n;
-    const cap = parseInt(a.cap, 10);
-    a.remaining = isNaN(cap) ? '' : String(cap - used[a.teacher]);
-    if(!isNaN(cap) && cap - used[a.teacher] < 0 && !a._warned){
-      warnings.push(`${a.teacher}: حصص البرامج المسندة تجاوزت المتاح من نسبة ١٠٪ (${arNum(cap)}).`);
-    }
-  });
 
   const usedExtra = ['low','up'].some(st => (programsByStage[st][M_EXTRA_DOMAIN.name] || []).length);
   const domains = usedExtra ? [...M_DOMAINS, M_EXTRA_DOMAIN] : M_DOMAINS;
@@ -2605,6 +2614,51 @@ function buildMasterModel(plans){
     warnings: [...new Set(warnings)],
     stats: {plans: plans.length, teachers: teachers.size, sessions: totalSessions}
   };
+}
+
+// ===== التعبئة اليدوية لجداول الملف =====
+// أي خانة في الجدول الأسبوعي أو جدول الإسناد يمكن كتابتها يدويًا من «عرض الملف».
+// النص اليدوي يتقدّم على التعبئة التلقائية، ويُحفظ مع الإعدادات وينزل في ملف Word.
+let masterEdit = false;
+function mcGet(key){
+  const mc = settings.manualCells || {};
+  return Object.prototype.hasOwnProperty.call(mc, key) ? mc[key] : null;
+}
+function mcSet(key, val, auto){
+  settings.manualCells = settings.manualCells || {};
+  if(val === auto) delete settings.manualCells[key];
+  else settings.manualCells[key] = val;
+  persistSoon();
+}
+function weekKey(d, pi, ri){ return `w|${d.date}|${pi}|${ri}`; }
+function weekVal(d, pi, ri){
+  const auto = d.cells[pi].map(e => e[['program','grade','teacher'][ri]]).join('\n');
+  const ov = mcGet(weekKey(d, pi, ri));
+  return {auto, ov, val: ov !== null ? ov : auto};
+}
+// صفوف جدول الإسناد بترتيب الأعمدة كما تظهر من اليمين:
+// اسم المعلم، المادة، (فارغ)، البرنامج، عدد الحصص، تاريخ البداية، (فارغ)
+const ASSIGN_COLS = 7;
+function assignAuto(a){
+  return a ? [a.teacher, a.subject, '', `${a.program} (${a.grade})`, arNum(a.n), a.startH, ''] : Array(ASSIGN_COLS).fill('');
+}
+function assignRows(m, minRows = 0){
+  let n = Math.max(m.assign.length, minRows);
+  Object.keys(settings.manualCells || {}).forEach(k=>{
+    const mm = k.match(/^a\|(\d+)\|\d+$/);
+    if(mm && settings.manualCells[k] !== '') n = Math.max(n, parseInt(mm[1], 10) + 1);
+  });
+  const rows = [];
+  for(let i = 0; i < n; i++){
+    const auto = assignAuto(m.assign[i]);
+    rows.push(auto.map((v, j)=>{ const ov = mcGet(`a|${i}|${j}`); return {key:`a|${i}|${j}`, auto:v, ov, val: ov !== null ? ov : v}; }));
+  }
+  return rows;
+}
+function editCell(c, extra = ''){
+  const html = esc(c.val).replace(/\n/g, '<br>');
+  if(!masterEdit) return `<td${extra}>${html}</td>`;
+  return `<td${extra} contenteditable="true" class="m-edit${c.ov !== null ? ' m-ov' : ''}" data-mk="${esc(c.key)}" data-auto="${esc(c.auto)}">${html}</td>`;
 }
 
 // ===== عرض الملف (HTML) — يُستخدم للمعاينة وللطباعة PDF =====
@@ -2656,15 +2710,12 @@ function mProgramsHTML(m, stage){
   return mPage(m, h + '</table>');
 }
 function mAssignHTML(m, rows, part){
-  let h = `<div class="m-h2" style="width:70%;">جدول إسناد برامج النشاط للمعلمين بعد احتساب الـ ١٠٪ من حصص المواد${part ? ' (' + arNum(part) + ')' : ''}</div>
+  let h = `<div class="m-h2" style="width:70%;">جدول إسناد برامج النشاط للمعلمين${part ? ' (' + arNum(part) + ')' : ''}</div>
     <table class="m-tbl"><colgroup><col style="width:17%"><col style="width:11%"><col style="width:10%"><col style="width:26%"><col style="width:8%"><col style="width:16%"><col style="width:12%"></colgroup>
-    <tr><th>اسم المعلم</th><th>مادة التدريس</th><th>عدد الحصص التي يمكن الاستفادة منها من نسبة ١٠٪</th><th>اسم البرنامج المسند للمعلم</th><th>عدد حصص البرنامج</th><th>تاريخ بداية التنفيذ</th><th>المتبقي بعد التنفيذ</th></tr>`;
-  const padded = rows.length ? rows : [];
-  padded.forEach(a=>{
-    h += `<tr><td>${esc(a.teacher)}</td><td>${esc(a.subject)}</td><td style="background:#e2efd9">${a.cap ? arNum(esc(a.cap)) : ''}</td>
-      <td>${esc(a.program)} <span style="color:#666">(${esc(a.grade)})</span></td><td class="cnt">${arNum(a.n)}</td><td>${a.startH}</td><td class="lbl">${a.remaining !== '' ? arNum(a.remaining) : ''}</td></tr>`;
-  });
-  for(let i = padded.length; i < 14 && !part; i++) h += '<tr>' + '<td>&nbsp;</td>'.repeat(7) + '</tr>';
+    <tr><th>اسم المعلم</th><th>مادة التدريس</th><th></th><th>اسم البرنامج المسند للمعلم</th><th>عدد حصص البرنامج</th><th>تاريخ بداية التنفيذ</th><th></th></tr>`;
+  const cls = ['', '', ' style="background:#e2efd9"', '', ' class="cnt"', '', ' class="lbl"'];
+  rows.forEach(r=>{ h += '<tr>' + r.map((c, j) => editCell(c, cls[j])).join('') + '</tr>'; });
+  for(let i = rows.length; i < 14 && !part; i++) h += '<tr>' + '<td>&nbsp;</td>'.repeat(7) + '</tr>';
   return mPage(m, h + '</table>');
 }
 function mWeekHTML(m, w){
@@ -2683,9 +2734,9 @@ function mWeekHTML(m, w){
       } else if(d.holiday){
         if(ri === 0) h += `<td colspan="6" rowspan="3" class="banner" style="background:#${M_COLORS.holiday};font-size:16px;">${d.holiday}</td>`;
       } else {
-        d.cells.forEach(c=>{
-          const key = ['program','grade','teacher'][ri];
-          h += `<td>${c.map(e => esc(e[key])).join('<br>')}</td>`;
+        d.cells.forEach((c, pi)=>{
+          const v = weekVal(d, pi, ri);
+          h += editCell({key: weekKey(d, pi, ri), auto: v.auto, ov: v.ov, val: v.val});
         });
       }
       h += '</tr>';
@@ -2697,8 +2748,10 @@ function chunk(arr, n){ const out = []; for(let i = 0; i < arr.length; i += n) o
 function renderMasterHTML(m){
   let h = mCoverHTML(m) + mDomainsHTML(m);
   ['low','up'].forEach(st => { h += mProgramsHTML(m, st); });
-  const parts = chunk(m.assign, 14);
-  if(parts.length <= 1) h += mAssignHTML(m, m.assign, 0);
+  // في وضع التعبئة اليدوية: جدول واحد بصفوف إضافية فارغة للكتابة
+  const rows = assignRows(m, masterEdit ? Math.max(14, m.assign.length + 3) : 0);
+  const parts = masterEdit ? [rows] : chunk(rows, 14);
+  if(parts.length <= 1) h += mAssignHTML(m, parts[0] || [], 0);
   else parts.forEach((p, i) => { h += mAssignHTML(m, p, i + 1); });
   m.weeks.forEach(w => { h += mWeekHTML(m, w); });
   return h;
@@ -2814,17 +2867,14 @@ function dxPrograms(m, stage){
 }
 function dxAssign(m, list, part){
   const g = split(DX.W, [17, 11, 10, 26, 8, 16, 12]);
-  const head = ['اسم المعلم','مادة التدريس','عدد الحصص التي يمكن الاستفادة منها من نسبة ١٠٪','اسم البرنامج المسند للمعلم','عدد حصص البرنامج','تاريخ بداية التنفيذ','المتبقي بعد التنفيذ'];
+  const head = ['اسم المعلم','مادة التدريس','','اسم البرنامج المسند للمعلم','عدد حصص البرنامج','تاريخ بداية التنفيذ',''];
   const rows = [DX.tr(head.map((t, i) => ({w:g[i], fill:M_COLORS.green, b:true, sz:16, text:t})), {h:640, header:true})];
-  list.forEach(a=>{
-    rows.push(DX.tr([
-      {w:g[0], sz:17, text:a.teacher}, {w:g[1], sz:17, text:a.subject},
-      {w:g[2], fill:M_COLORS.dayGreen, sz:17, text:a.cap ? arNum(a.cap) : ''},
-      {w:g[3], sz:17, text:`${a.program} (${a.grade})`}, {w:g[4], fill:M_COLORS.gray, b:true, sz:17, text:arNum(a.n)},
-      {w:g[5], sz:17, text:a.startH}, {w:g[6], fill:M_COLORS.label, sz:17, text:a.remaining !== '' ? arNum(a.remaining) : ''}], {h:360}));
+  const fills = [null, null, M_COLORS.dayGreen, null, M_COLORS.gray, null, M_COLORS.label];
+  list.forEach(r=>{
+    rows.push(DX.tr(r.map((c, j) => Object.assign({w:g[j], sz:17, text:c.val, b: j === 4}, fills[j] ? {fill:fills[j]} : {})), {h:360}));
   });
   for(let i = list.length; i < 14 && !part; i++) rows.push(DX.tr(g.map(w => ({w, text:''})), {h:360}));
-  return dxHeader(m) + dxTitle('جدول إسناد برامج النشاط للمعلمين بعد احتساب الـ ١٠٪ من حصص المواد' + (part ? ` (${arNum(part)})` : '')) + DX.tbl(g, rows);
+  return dxHeader(m) + dxTitle('جدول إسناد برامج النشاط للمعلمين' + (part ? ` (${arNum(part)})` : '')) + DX.tbl(g, rows);
 }
 function dxWeek(m, w){
   const wk = split(DX.W, [1, 1, 3]);
@@ -2855,7 +2905,7 @@ function dxWeek(m, w){
         cells.push({w:spanW, span:6, fill:M_COLORS.holiday, color:'FFFFFF', b:true, sz:30, text:ri === 0 ? d.holiday : '', vm:ri === 0 ? 'restart' : 'continue'});
       } else {
         const key = ['program','grade','teacher'][ri];
-        d.cells.forEach((c, ci) => cells.push({w:grid[2+ci], sz:15, text:c.map(e => e[key]).join('\n')}));
+        d.cells.forEach((c, ci) => cells.push({w:grid[2+ci], sz:15, text:weekVal(d, ci, ri).val}));
       }
       rows.push(DX.tr(cells, {h:420}));
     });
@@ -2864,8 +2914,8 @@ function dxWeek(m, w){
 }
 function buildDocxXml(m){
   const pages = [dxCover(m), dxDomains(m), dxPrograms(m, 'low'), dxPrograms(m, 'up')];
-  const parts = chunk(m.assign, 14);
-  if(parts.length <= 1) pages.push(dxAssign(m, m.assign, 0));
+  const parts = chunk(assignRows(m), 14);
+  if(parts.length <= 1) pages.push(dxAssign(m, parts[0] || [], 0));
   else parts.forEach((p, i) => pages.push(dxAssign(m, p, i + 1)));
   m.weeks.forEach(w => pages.push(dxWeek(m, w)));
   const body = pages.join(DX.pageBreak());
@@ -2961,11 +3011,71 @@ document.getElementById('toggleMasterBtn').addEventListener('click', async ()=>{
     await refreshMaster(); drawMaster();
   } else {
     v.style.display = 'none'; btn.textContent = '👁️ عرض الملف';
+    if(masterEdit){ masterEdit = false; document.getElementById('manualFillBar').style.display = 'none'; document.getElementById('manualFillBtn').style.display = ''; }
   }
 });
+// ===== التعبئة اليدوية: تشغيل/إيقاف وحفظ ما يُكتب في الخانات =====
+async function setMasterEdit(on){
+  masterEdit = on;
+  document.getElementById('manualFillBar').style.display = on ? 'block' : 'none';
+  document.getElementById('manualFillBtn').style.display = on ? 'none' : '';
+  const v = document.getElementById('masterViewer');
+  if(on){
+    v.style.display = 'block';
+    document.getElementById('toggleMasterBtn').textContent = '🙈 إخفاء الملف';
+  }
+  await refreshMaster(); drawMaster();
+  if(on) document.getElementById('manualFillBar').scrollIntoView({behavior:'smooth', block:'start'});
+}
+document.getElementById('manualFillBtn').addEventListener('click', ()=> setMasterEdit(true));
+document.getElementById('manualFillDoneBtn').addEventListener('click', ()=> setMasterEdit(false));
+document.getElementById('manualFillClearBtn').addEventListener('click', async ()=>{
+  const n = Object.keys(settings.manualCells || {}).length;
+  if(!n){ alert('ما فيه تعبئة يدوية محفوظة.'); return; }
+  if(!confirm(`بتنمسح كل الخانات المكتوبة يدويًا (${n} خانة) وترجع للتعبئة التلقائية. نكمل؟`)) return;
+  settings.manualCells = {};
+  persistSoon();
+  await refreshMaster(); drawMaster();
+});
+const masterDocEl = document.getElementById('masterDoc');
+function readEditCell(td){ return td.innerText.replace(/\u00a0/g, ' ').replace(/\n+$/, '').trim(); }
+masterDocEl.addEventListener('input', e=>{
+  const td = e.target.closest && e.target.closest('td[data-mk]');
+  if(!td) return;
+  const val = readEditCell(td);
+  mcSet(td.dataset.mk, val, td.dataset.auto);
+  td.classList.toggle('m-ov', val !== td.dataset.auto);
+});
+// لصق نص عادي فقط (بدون تنسيق)
+masterDocEl.addEventListener('paste', e=>{
+  const td = e.target.closest && e.target.closest('td[data-mk]');
+  if(!td) return;
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+  document.execCommand('insertText', false, text);
+});
+// Enter ينتقل للخانة التالية، و Shift+Enter سطر جديد
+masterDocEl.addEventListener('keydown', e=>{
+  const td = e.target.closest && e.target.closest('td[data-mk]');
+  if(!td || e.key !== 'Enter' || e.shiftKey) return;
+  e.preventDefault();
+  // الخانة التالية تحتها في نفس العمود: البرنامج ← الصف ← اسم المعلم ← اليوم التالي
+  const k = td.dataset.mk.split('|');
+  let next = null;
+  if(k[0] === 'a') next = masterDocEl.querySelector(`td[data-mk="a|${+k[1] + 1}|${k[2]}"]`);
+  else if(+k[3] < 2) next = masterDocEl.querySelector(`td[data-mk="w|${k[1]}|${k[2]}|${+k[3] + 1}"]`);
+  else {
+    const firsts = [...masterDocEl.querySelectorAll(`td[data-mk$="|${k[2]}|0"][data-mk^="w|"]`)];
+    const i = firsts.findIndex(x => x.dataset.mk.split('|')[1] === k[1]);
+    next = firsts[i + 1] || null;
+  }
+  if(next){ next.focus(); const r = document.createRange(); r.selectNodeContents(next); r.collapse(false); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+});
+
 document.getElementById('exportWordBtn').addEventListener('click', async ()=>{
   const m = await refreshMaster();
-  if(!m.stats.plans && !confirm('ما فيه خطط محفوظة للحين. تبي تنزّل الملف فاضي؟')) return;
+  const hasManual = Object.keys(settings.manualCells || {}).length > 0;
+  if(!m.stats.plans && !hasManual && !confirm('ما فيه خطط محفوظة للحين. تبي تنزّل الملف فاضي؟')) return;
   const btn = document.getElementById('exportWordBtn');
   const label = btn.textContent;
   btn.textContent = '⏳ جاري تجهيز الملف…'; btn.disabled = true;
@@ -2982,7 +3092,7 @@ document.getElementById('exportWordBtn').addEventListener('click', async ()=>{
 });
 document.getElementById('exportPdfBtn').addEventListener('click', async ()=>{
   const m = await refreshMaster();
-  if(!m.stats.plans && !confirm('ما فيه خطط محفوظة للحين. تبي تطبع الملف فاضي؟')) return;
+  if(!m.stats.plans && !Object.keys(settings.manualCells || {}).length && !confirm('ما فيه خطط محفوظة للحين. تبي تطبع الملف فاضي؟')) return;
   const v = document.getElementById('masterViewer');
   const wasHidden = v.style.display === 'none';
   v.style.display = 'block'; drawMaster();
@@ -3194,30 +3304,83 @@ function fillWeeks(doc, m){
       current = mm ? byHijri[parseInt(mm[1], 10) + '/' + parseInt(mm[2], 10)] || null : null;
     }
     if(!current || current.holiday) return;
-    const key = ['program','grade','teacher'][li];
     current.cells.forEach((list, pi)=>{
-      if(!list.length) return;
+      const v = weekVal(current, pi, li);
+      if(!v.val && v.ov === null) return; // خانة فاضية: تبقى كما في القالب
       const tc = cells[6 - pi]; // الأولى = الخانة ٦ … السادسة = الخانة ١
-      if(tc) setCellText(tc, list.map(e => e[key]).join('\n'), {sz: list.length > 1 ? 14 : 16, b: li === 0});
+      if(tc) setCellText(tc, v.val, {sz: (list.length > 1 || v.val.includes('\n')) ? 14 : 16, b: li === 0});
     });
   });
 }
 function fillAssign(doc, m){
   const tbl = wAll(doc, 'tbl').find(t => { const r = wKids(t, 'tr')[0]; return r && wText(r).includes('جدول اسناد'); });
   if(!tbl) return;
-  let rows = wKids(tbl, 'tr').filter((r, i) => i >= 2 && wKids(r, 'tc').length === 7);
+  const all = wKids(tbl, 'tr');
+  // العنوان والأعمدة بدون نسبة ١٠٪ (تبقى الأعمدة نفسها بنفس التصميم)
+  const titleCell = all[0] && wKids(all[0], 'tc')[0];
+  if(titleCell) setCellText(titleCell, 'جدول إسناد برامج النشاط للمعلمين', {b:true});
+  if(all[1]) wKids(all[1], 'tc').forEach(tc=>{
+    const t = normDigits(wText(tc)).replace(/\s+/g, '');
+    if(/10%|نسبة|المتبقي/.test(t)) setCellText(tc, '');
+  });
+  let rows = all.filter((r, i) => i >= 2 && wKids(r, 'tc').length === 7);
   if(!rows.length) return;
-  while(rows.length < m.assign.length){
+  const data = assignRows(m);
+  while(rows.length < data.length){
     const last = rows[rows.length - 1];
     const c = cloneEmptyRow(last);
     last.parentNode.insertBefore(c, last.nextSibling);
     rows.push(c);
   }
-  m.assign.forEach((a, i)=>{
+  data.forEach((r, i)=>{
     const c = wKids(rows[i], 'tc');
-    const vals = [a.remaining !== '' ? arNum(a.remaining) : '', a.startH, arNum(a.n), `${a.program} (${a.grade})`, a.cap ? arNum(a.cap) : '', a.subject, a.teacher];
-    vals.forEach((v, j) => setCellText(c[j], v, {sz:18, b: j === 6 || j === 3}));
+    // خانات Word من اليسار، والأعمدة في البيانات من اليمين
+    r.forEach((cell, j) => { if(cell.val || cell.ov !== null) setCellText(c[ASSIGN_COLS - 1 - j], cell.val, {sz:18, b: j === 0 || j === 3}); });
   });
+}
+// الغلاف: اسم المدرسة ومدير المدرسة ورائد النشاط من الإعدادات (إن كُتبت)
+function ownTexts(p){
+  return wAll(p, 't').filter(t=>{
+    for(let a = t.parentNode; a && a !== p; a = a.parentNode){
+      if(a.localName === 'txbxContent' || a.localName === 'Fallback') return false;
+    }
+    return true;
+  });
+}
+function setParaText(p, text){
+  const ts = ownTexts(p);
+  if(!ts.length) return false;
+  ts[0].textContent = text;
+  ts[0].setAttributeNS(XMLNS_XML, 'xml:space', 'preserve');
+  ts.slice(1).forEach(t => { t.textContent = ''; });
+  return true;
+}
+function fillCover(doc, m){
+  const nrm = s => String(s || '').replace(/[\sـ\u200f\u200e]+/g, '');
+  wAll(doc, 'txbxContent').forEach(tb=>{
+    const ps = wKids(tb, 'p');
+    ps.forEach((p, i)=>{
+      const t = nrm(ownTexts(p).map(x => x.textContent).join(''));
+      if(t === 'مديرالمدرسة' && m.director && ps[i + 1]) setParaText(ps[i + 1], m.director);
+      if(t === 'رائدالنشاطالطلابي' && m.leader && ps[i + 1]) setParaText(ps[i + 1], m.leader);
+    });
+  });
+  // تصحيح السنة الميلادية تحت العام الدراسي في القالب (٢٠٢٥–٢٠٢٦ ← ٢٠٢٦–٢٠٢٧ للعام ١٤٤٨–١٤٤٩)
+  wAll(doc, 'p').forEach(p=>{
+    const ts = ownTexts(p);
+    const joined = ts.map(t => t.textContent).join('');
+    if(!/2025/.test(joined) || !/2026/.test(joined) || joined.replace(/[\d\s–-]/g, '')) return;
+    ts.forEach(t => { t.textContent = t.textContent.replace(/202[56]/g, y => y === '2025' ? '2026' : '2027'); });
+  });
+  if(m.school){
+    const body = wAll(doc, 'body')[0];
+    const paras = wKids(body, 'p').slice(0, 12);
+    const ri = paras.findIndex(p => nrm(ownTexts(p).map(x => x.textContent).join('')).includes('بمنطقة'));
+    if(ri >= 0){
+      const sp = paras.slice(ri + 1).find(p => ownTexts(p).some(t => t.textContent.trim()));
+      if(sp) setParaText(sp, m.school);
+    }
+  }
 }
 // ترتيب المجالات في جدول البرامج بالقالب (من اليمين): المواطنة، الثقافة، الرياضة، العلوم، الكشفي، المناسبات
 const TPL_DOM_NAME_CELL = {'المواطنة والحياة':11, 'الثقافة والفنون':9, 'الرياضة والصحة':7, 'العلوم والتقنية':5, 'النشاط الكشفي':3, 'الأيام والمناسبات':1};
@@ -3283,6 +3446,7 @@ async function buildDocxFromTemplate(m){
   }
   const doc = new DOMParser().parseFromString(TPL_CACHE.xml, 'application/xml');
   if(doc.getElementsByTagName('parsererror').length) throw new Error('xml-parse');
+  fillCover(doc, m);
   fillWeeks(doc, m);
   fillAssign(doc, m);
   fillPrograms(doc, m);
