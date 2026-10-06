@@ -1573,7 +1573,8 @@ let activeDays = ['mon','wed'];
 // رقم الحصة (١–٦) اللي ينفّذ فيها النشاط
 // حصة النشاط لكل يوم: {sun:3, mon:5, ...}
 let dayPeriods = {};
-const PERIOD_NAMES = ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة'];
+const PERIOD_NAMES = ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','السابعة'];
+const MAX_PERIOD = PERIOD_NAMES.length;
 function renderPeriodPicker(){
   const wrap = document.getElementById('periodPerDay');
   if(!wrap) return;
@@ -1582,7 +1583,7 @@ function renderPeriodPicker(){
     <div class="pd-row">
       <div class="pd-day">${DAY_NAMES[k]}${doubleDays.includes(k) ? '<small>حصتان متتاليتان</small>' : ''}</div>
       <div class="pd-chips">${PERIOD_NAMES.map((nm, i) =>
-        `<label class="day-chip"><input type="radio" name="pd-${k}" value="${i+1}" ${dayPeriods[k] === i+1 ? 'checked' : ''}${doubleDays.includes(k) && i === 5 ? ' disabled' : ''}><span>${nm}</span></label>`).join('')}</div>
+        `<label class="day-chip"><input type="radio" name="pd-${k}" value="${i+1}" ${dayPeriods[k] === i+1 ? 'checked' : ''}${doubleDays.includes(k) && i === MAX_PERIOD - 1 ? ' disabled' : ''}><span>${nm}</span></label>`).join('')}</div>
     </div>`).join('');
   wrap.querySelectorAll('input').forEach(r=>{
     r.addEventListener('change', ()=>{ dayPeriods[r.name.slice(3)] = parseInt(r.value, 10); });
@@ -1592,14 +1593,14 @@ function renderPeriodPicker(){
 function getDayPeriods(){
   const out = {};
   for(const k of DAY_ORDER.filter(k => activeDays.includes(k))){
-    if(!(dayPeriods[k] >= 1 && dayPeriods[k] <= 6)) return null;
+    if(!(dayPeriods[k] >= 1 && dayPeriods[k] <= MAX_PERIOD)) return null;
     out[k] = dayPeriods[k];
   }
   return out;
 }
 function setDayPeriods(v){
   dayPeriods = {};
-  if(v && typeof v === 'object') Object.keys(v).forEach(k => { const n = parseInt(v[k], 10); if(n >= 1 && n <= 6) dayPeriods[k] = n; });
+  if(v && typeof v === 'object') Object.keys(v).forEach(k => { const n = parseInt(v[k], 10); if(n >= 1 && n <= MAX_PERIOD) dayPeriods[k] = n; });
   else if(parseInt(v, 10) >= 1) DAY_ORDER.forEach(k => { dayPeriods[k] = parseInt(v, 10); }); // خطط قديمة: حصة وحدة لكل الأيام
   renderPeriodPicker();
 }
@@ -2456,7 +2457,7 @@ const M_DOMAINS = [
 ];
 const M_EXTRA_DOMAIN = {name:'الفترات اللاصفية', color:'64748B'};
 const M_GENERAL_GOAL = 'بناء شخصية وقدرات الطلاب بما يسهم في تعزيز قيمهم واستكشاف ميولهم واهتماماتهم وتطوير مهارات جديدة وإبراز إبداعاتهم وابتكاراتهم ليكونوا على مستوى عالٍ من المهارة والمسؤولية معتزين بقيمهم السعودية منافسين محليًا وعالميًا';
-const M_PERIODS = ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة'];
+const M_PERIODS = ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','السابعة'];
 const M_ROW_LABELS = ['البرنامج','الصف','اسم المعلم'];
 
 function arNum(n){ return String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]); }
@@ -2533,7 +2534,7 @@ function buildMasterModel(plans){
       const k = DAY_KEY_BY_NAME[s.day];
       const v = plan.periods && plan.periods[k] != null ? plan.periods[k] : plan.period;
       const n = parseInt(v, 10);
-      return n >= 1 && n <= 6 ? n : null;
+      return n >= 1 && n <= M_PERIODS.length ? n : null;
     };
     const missingDays = days.filter(k => !periodOf({day: DAY_KEYS[k]}));
     if(missingDays.length) noPeriod.push(`${shortGrade(plan.grade)} — ${teacher || 'بدون معلم'} (${missingDays.map(k => DAY_NAMES[k]).join('، ')})`);
@@ -2563,7 +2564,7 @@ function buildMasterModel(plans){
           if(!d || !period) return;
           // في أيام الحصتين المتتاليتين ينزل النشاط في الحصة المختارة واللي بعدها
           for(let k = 0; k < (counts[si] || 1); k++){
-            if(period + k <= 6) d.cells[period - 1 + k].push({program:prog.name, grade:shortGrade(plan.grade), teacher, domain:prog.domain});
+            if(period + k <= M_PERIODS.length) d.cells[period - 1 + k].push({program:prog.name, grade:shortGrade(plan.grade), teacher, domain:prog.domain});
           }
         });
       }
@@ -2669,8 +2670,8 @@ function mAssignHTML(m, rows, part){
 }
 function mWeekHTML(m, w){
   let h = `<div class="m-weekhead"><span class="k">الأسبوع</span><span class="n">${w.banner && w.label === 'إجازة' ? '—' : arNum(w.label)}</span><span class="bar"></span></div>
-    <table class="m-tbl week"><colgroup><col style="width:10%"><col style="width:7%">${M_PERIODS.map(()=>'<col style="width:13.83%">').join('')}</colgroup>
-    <tr><th colspan="8" class="hdr">الحصص الدراسية</th></tr>
+    <table class="m-tbl week"><colgroup><col style="width:10%"><col style="width:7%">${M_PERIODS.map(()=>`<col style="width:${(83 / M_PERIODS.length).toFixed(2)}%">`).join('')}</colgroup>
+    <tr><th colspan="${M_PERIODS.length + 2}" class="hdr">الحصص الدراسية</th></tr>
     <tr><th colspan="2">اليوم / الحصة</th>${M_PERIODS.map(p=>`<th>${p}</th>`).join('')}</tr>`;
   w.days.forEach((d, di)=>{
     const dayName = DAY_NAMES[DAY_ORDER.find(k => DAY_KEYS[k] === d.day)] || d.day;
@@ -2679,9 +2680,9 @@ function mWeekHTML(m, w){
       if(ri === 0) h += `<td rowspan="3" class="day">${dayName}<br>${hijriShort(d.h)}</td>`;
       h += `<td class="lbl">${lbl}</td>`;
       if(w.banner){
-        if(di === 0 && ri === 0) h += `<td colspan="6" rowspan="${w.days.length*3}" class="banner" style="background:#${w.bannerColor}">${w.banner}</td>`;
+        if(di === 0 && ri === 0) h += `<td colspan="${M_PERIODS.length}" rowspan="${w.days.length*3}" class="banner" style="background:#${w.bannerColor}">${w.banner}</td>`;
       } else if(d.holiday){
-        if(ri === 0) h += `<td colspan="6" rowspan="3" class="banner" style="background:#${M_COLORS.holiday};font-size:16px;">${d.holiday}</td>`;
+        if(ri === 0) h += `<td colspan="${M_PERIODS.length}" rowspan="3" class="banner" style="background:#${M_COLORS.holiday};font-size:16px;">${d.holiday}</td>`;
       } else {
         d.cells.forEach(c=>{
           const key = ['program','grade','teacher'][ri];
@@ -2832,12 +2833,13 @@ function dxWeek(m, w){
     {w:wk[0], fill:M_COLORS.teal, color:'FFFFFF', b:true, sz:24, text:'الأسبوع'},
     {w:wk[1], fill:M_COLORS.numGray, color:'FFFFFF', b:true, sz:26, text:w.label === 'إجازة' ? '—' : arNum(w.label)},
     {w:wk[2], fill:M_COLORS.gray, text:''}], {h:380})], {borderColor:'FFFFFF'}) + DX.spacer(100);
-  const pw = Math.floor((DX.W - 1500 - 1000) / 6);
-  const grid = [1500, 1000, pw, pw, pw, pw, pw, pw];
+  const NP = M_PERIODS.length;
+  const pw = Math.floor((DX.W - 1500 - 1000) / NP);
+  const grid = [1500, 1000, ...M_PERIODS.map(() => pw)];
   grid[0] += DX.W - grid.reduce((a,b)=>a+b,0);
-  const spanW = pw * 6;
+  const spanW = pw * NP;
   const rows = [
-    DX.tr([{w:DX.W, span:8, fill:M_COLORS.teal, color:'FFFFFF', b:true, sz:22, text:'الحصص الدراسية'}], {h:320, header:true}),
+    DX.tr([{w:DX.W, span:NP + 2, fill:M_COLORS.teal, color:'FFFFFF', b:true, sz:22, text:'الحصص الدراسية'}], {h:320, header:true}),
     DX.tr([{w:grid[0] + grid[1], span:2, fill:M_COLORS.gray, b:true, sz:17, text:'اليوم / الحصة'},
       ...M_PERIODS.map((p, i) => ({w:grid[2+i], fill:M_COLORS.gray, b:true, sz:18, text:p}))], {h:300, header:true})
   ];
@@ -2850,9 +2852,9 @@ function dxWeek(m, w){
       ];
       if(w.banner){
         const first = di === 0 && ri === 0;
-        cells.push({w:spanW, span:6, fill:w.bannerColor, color:'FFFFFF', b:true, sz:40, text:first ? w.banner : '', vm:first ? 'restart' : 'continue'});
+        cells.push({w:spanW, span:NP, fill:w.bannerColor, color:'FFFFFF', b:true, sz:40, text:first ? w.banner : '', vm:first ? 'restart' : 'continue'});
       } else if(d.holiday){
-        cells.push({w:spanW, span:6, fill:M_COLORS.holiday, color:'FFFFFF', b:true, sz:30, text:ri === 0 ? d.holiday : '', vm:ri === 0 ? 'restart' : 'continue'});
+        cells.push({w:spanW, span:NP, fill:M_COLORS.holiday, color:'FFFFFF', b:true, sz:30, text:ri === 0 ? d.holiday : '', vm:ri === 0 ? 'restart' : 'continue'});
       } else {
         const key = ['program','grade','teacher'][ri];
         d.cells.forEach((c, ci) => cells.push({w:grid[2+ci], sz:15, text:c.map(e => e[key]).join('\n')}));
@@ -3142,7 +3144,7 @@ function setCellText(tc, text, o = {}){
   orderedSet(pPr, PPR_ORDER, 'jc', {val:'center'});
   if(o.sz){ rprSet(base, 'sz', {val:String(o.sz)}); rprSet(base, 'szCs', {val:String(o.sz)}); }
   if(o.b){ rprSet(base, 'b'); rprSet(base, 'bCs'); }
-  wKids(base, 'w').forEach(x => x.remove());
+  if(!o.keepScale) wKids(base, 'w').forEach(x => x.remove());
   wKids(base, 'rFonts').forEach(x => x.remove());
   rprSet(base, 'rtl');
   String(text == null ? '' : text).split('\n').forEach((line, i)=>{
@@ -3197,9 +3199,43 @@ function fillWeeks(doc, m){
     const key = ['program','grade','teacher'][li];
     current.cells.forEach((list, pi)=>{
       if(!list.length) return;
-      const tc = cells[6 - pi]; // الأولى = الخانة ٦ … السادسة = الخانة ١
+      const tc = cells[6 - pi]; // الأولى = الخانة ٦ … السادسة = الخانة ١، والسابعة = الخانة ٠
       if(tc) setCellText(tc, list.map(e => e[key]).join('\n'), {sz: list.length > 1 ? 14 : 16, b: li === 0});
     });
+  });
+}
+// القالب فيه ٦ حصص، وتحت «السادسة» خانتين: نقسم رأسها إلى «السادسة» و«السابعة»
+function addSeventhPeriodHeader(doc){
+  wAll(doc, 'tbl').forEach(tbl=>{
+    const rows = wKids(tbl, 'tr');
+    const hi = rows.findIndex(r => { const c = wKids(r, 'tc'); return c.length === 7 && wText(c[0]) === 'السادسة'; });
+    if(hi < 0) return;
+    const dataRow = rows.slice(hi + 1).find(r => wKids(r, 'tc').length === 9);
+    if(!dataRow) return;
+    const dc = wKids(dataRow, 'tc');
+    const spanOf = tc => { const g = tc.getElementsByTagNameNS(WNS, 'gridSpan')[0]; return g ? parseInt(g.getAttributeNS(WNS, 'val') || g.getAttribute('w:val'), 10) || 1 : 1; };
+    const widthOf = tc => { const w = tc.getElementsByTagNameNS(WNS, 'tcW')[0]; return w ? (w.getAttributeNS(WNS, 'w') || w.getAttribute('w:w')) : null; };
+    const h6 = wKids(rows[hi], 'tc')[0];
+    const h7 = h6.cloneNode(true);
+    scrubIds(h7);
+    const setGeom = (tc, span, w)=>{
+      const pr = wKids(tc, 'tcPr')[0];
+      if(!pr) return;
+      wKids(pr, 'gridSpan').forEach(x => x.remove());
+      const tcW = wKids(pr, 'tcW')[0];
+      if(tcW && w) tcW.setAttributeNS(WNS, 'w:w', w);
+      if(span > 1){
+        const g = wEl(doc, 'gridSpan', {val:String(span)});
+        pr.insertBefore(g, tcW ? tcW.nextSibling : pr.firstChild);
+      }
+    };
+    setGeom(h7, spanOf(dc[0]), widthOf(dc[0]));
+    setGeom(h6, spanOf(dc[1]), widthOf(dc[1]));
+    // نكتب «السابعة» و«السادسة» بنفس تنسيق الرأس، في وسط الخانة (بدون إزاحة تضيّقها)
+    const sz = (()=>{ const e = h6.getElementsByTagNameNS(WNS, 'sz')[0]; return e ? parseInt(e.getAttributeNS(WNS, 'val') || e.getAttribute('w:val'), 10) : null; })();
+    setCellText(h7, 'السابعة', sz ? {sz, keepScale:true} : {keepScale:true});
+    setCellText(h6, 'السادسة', sz ? {sz, keepScale:true} : {keepScale:true});
+    h6.parentNode.insertBefore(h7, h6);
   });
 }
 function fillAssign(doc, m){
@@ -3283,6 +3319,7 @@ async function buildDocxFromTemplate(m){
   }
   const doc = new DOMParser().parseFromString(TPL_CACHE.xml, 'application/xml');
   if(doc.getElementsByTagName('parsererror').length) throw new Error('xml-parse');
+  addSeventhPeriodHeader(doc);
   fillWeeks(doc, m);
   fillAssign(doc, m);
   fillPrograms(doc, m);
