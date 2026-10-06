@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:esbuild": "node scripts/build.mjs",
+    "build:single": "node scripts/build-single.mjs",
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {

@@ -54,6 +54,13 @@ export async function elementToPng(element, name) {
 }
 
 export async function fetchBytes(path) {
+  const b64 = window.__EMBED__?.bin?.[path];
+  if (b64) {
+    const bin = atob(b64);
+    const u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    return u;
+  }
   const res = await fetch(new URL(path, document.baseURI));
   if (!res.ok) throw new Error('تعذر تحميل القالب');
   return new Uint8Array(await res.arrayBuffer());

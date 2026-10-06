@@ -4,7 +4,11 @@ import { DAY_ORDER } from '../utils/arabic.js';
 
 const BASE = (typeof document !== 'undefined' && document.baseURI) || '/';
 
+// نسخة الملف الواحد: البيانات مضمّنة داخل الصفحة (window.__EMBED__)
+const EMBED = (typeof window !== 'undefined' && window.__EMBED__) || null;
+
 async function getJSON(path) {
+  if (EMBED?.json?.[path]) return structuredClone(EMBED.json[path]);
   const res = await fetch(new URL(path, BASE), { cache: 'no-cache' });
   if (!res.ok) throw new Error(`تعذر تحميل ${path}`);
   return res.json();

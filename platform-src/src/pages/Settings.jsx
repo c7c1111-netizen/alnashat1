@@ -181,7 +181,7 @@ function TemplateSettings() {
       <div className="row-actions">
         <label className="btn secondary">⬆️ رفع قالب .docx<input type="file" accept=".docx" hidden onChange={(e) => { upload(e.target.files[0]); e.target.value = ''; }} /></label>
         {custom && <Button onClick={reset}>الرجوع للقالب الرسمي</Button>}
-        <a className="btn ghost" href="templates/official-plan.docx" download="القالب الرسمي - خطة برامج النشاط الطلابي.docx">تنزيل القالب الرسمي</a>
+        <Button variant="ghost" onClick={async () => { const { fetchBytes, downloadBlob } = await import('../export/files.js'); downloadBlob(new Blob([await fetchBytes('templates/official-plan.docx')]), 'القالب الرسمي - خطة برامج النشاط الطلابي.docx'); }}>تنزيل القالب الرسمي</Button>
       </div>
     </Card>
   );
