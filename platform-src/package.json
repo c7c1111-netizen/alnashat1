@@ -1,0 +1,25 @@
+{
+  "name": "activity-platform",
+  "private": true,
+  "version": "2.0.0",
+  "description": "منصة النشاط الطلابي — React",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:esbuild": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "docx": "^9.7.1",
+    "html-to-image": "^1.11.13",
+    "jszip": "^3.10.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "esbuild": "^0.25.0",
+    "vite": "^7.0.0"
+  }
+}

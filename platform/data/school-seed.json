@@ -1,0 +1,186 @@
+{
+ "version": 1,
+ "note": "بيانات أولية للمدرسة — تُنسخ لإعدادات المنصة عند أول تشغيل ويمكن تعديلها من الإعدادات",
+ "school": {
+  "name": "",
+  "stageName": "الابتدائية"
+ },
+ "classes": [
+  {
+   "id": "g1-أ",
+   "gradeId": "g1",
+   "section": "أ",
+   "homeroomTeacherId": "t01"
+  },
+  {
+   "id": "g1-ب",
+   "gradeId": "g1",
+   "section": "ب",
+   "homeroomTeacherId": "t01"
+  },
+  {
+   "id": "g2-أ",
+   "gradeId": "g2",
+   "section": "أ",
+   "homeroomTeacherId": "t02"
+  },
+  {
+   "id": "g2-ب",
+   "gradeId": "g2",
+   "section": "ب",
+   "homeroomTeacherId": "t03"
+  },
+  {
+   "id": "g3-أ",
+   "gradeId": "g3",
+   "section": "أ",
+   "homeroomTeacherId": "t04"
+  },
+  {
+   "id": "g3-ب",
+   "gradeId": "g3",
+   "section": "ب",
+   "homeroomTeacherId": "t03"
+  },
+  {
+   "id": "g4-أ",
+   "gradeId": "g4",
+   "section": "أ",
+   "homeroomTeacherId": "t05"
+  },
+  {
+   "id": "g4-ب",
+   "gradeId": "g4",
+   "section": "ب",
+   "homeroomTeacherId": "t06"
+  },
+  {
+   "id": "g4-ج",
+   "gradeId": "g4",
+   "section": "ج",
+   "homeroomTeacherId": "t07"
+  },
+  {
+   "id": "g4-د",
+   "gradeId": "g4",
+   "section": "د",
+   "homeroomTeacherId": "t08"
+  },
+  {
+   "id": "g5-أ",
+   "gradeId": "g5",
+   "section": "أ",
+   "homeroomTeacherId": "t09"
+  },
+  {
+   "id": "g5-ب",
+   "gradeId": "g5",
+   "section": "ب",
+   "homeroomTeacherId": "t10"
+  },
+  {
+   "id": "g5-ج",
+   "gradeId": "g5",
+   "section": "ج",
+   "homeroomTeacherId": "t11"
+  },
+  {
+   "id": "g6-أ",
+   "gradeId": "g6",
+   "section": "أ",
+   "homeroomTeacherId": "t12"
+  },
+  {
+   "id": "g6-ب",
+   "gradeId": "g6",
+   "section": "ب",
+   "homeroomTeacherId": "t13"
+  },
+  {
+   "id": "g6-ج",
+   "gradeId": "g6",
+   "section": "ج",
+   "homeroomTeacherId": "t13"
+  }
+ ],
+ "teachers": [
+  {
+   "id": "t01",
+   "name": "عوض القرني",
+   "subject": "",
+   "weeklyLoad": null
+  },
+  {
+   "id": "t02",
+   "name": "جبران الفيفي",
+   "subject": "",
+   "weeklyLoad": null
+  },
+  {
+   "id": "t03",
+   "name": "حاصل الاحمري",
+   "subject": "",
+   "weeklyLoad": null
+  },
+  {
+   "id": "t04",
+   "name": "عزيز الشهري",
+   "subject": "",
+   "weeklyLoad": null
+  },
+  {
+   "id": "t05",
+   "name": "منصور هيف",
+   "subject": "",
+   "weeklyLoad": null
+  },
+  {
+   "id": "t06",
+   "name": "محمد عبدالله الشهري",
+   "subject": "",
+   "weeklyLoad": null
+  },
+  {
+   "id": "t07",
+   "name": "صالح القبيسي",
+   "subject": "",
+   "weeklyLoad": null
+  },
+  {
+   "id": "t08",
+   "name": "زهير الزهيري",
+   "subject": "",
+   "weeklyLoad": null
+  },
+  {
+   "id": "t09",
+   "name": "عبدالله مستور",
+   "subject": "",
+   "weeklyLoad": null
+  },
+  {
+   "id": "t10",
+   "name": "خالد الشهري",
+   "subject": "",
+   "weeklyLoad": null
+  },
+  {
+   "id": "t11",
+   "name": "فهد القحطاني",
+   "subject": "",
+   "weeklyLoad": null
+  },
+  {
+   "id": "t12",
+   "name": "محمد العمري",
+   "subject": "",
+   "weeklyLoad": null
+  },
+  {
+   "id": "t13",
+   "name": "حسين الوادعي",
+   "subject": "",
+   "weeklyLoad": null
+  }
+ ]
+}

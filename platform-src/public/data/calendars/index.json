@@ -1,0 +1,11 @@
+{
+ "version": 1,
+ "default": "1448-1449",
+ "calendars": [
+  {
+   "id": "1448-1449",
+   "label": "1448 – 1449 هـ",
+   "file": "calendars/1448-1449.json"
+  }
+ ]
+}
