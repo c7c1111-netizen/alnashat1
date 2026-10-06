@@ -2,7 +2,7 @@
 import { uid } from '../utils/ids.js';
 
 export const APP_VERSION = '2.0.0';
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const PROGRAM_STATUS = {
   not_started: { label: 'لم يبدأ', icon: '⚪', tone: 'muted' },
@@ -17,11 +17,13 @@ export const PLAN_STATUS = {
   approved: { label: 'معتمدة', tone: 'ok' },
 };
 
-export function initialState(seed = null, calendarId = '1448-1449') {
+export function initialState(seed = null, calendarId = '1448-1449', { types = null, id = null } = {}) {
   const now = Date.now();
   return {
     schemaVersion: SCHEMA_VERSION,
     school: {
+      id: id || 'school_main',
+      types: types || seed?.school?.types || ['primary'],
       name: seed?.school?.name || '',
       stageName: seed?.school?.stageName || 'الابتدائية',
       leaderName: '',
@@ -30,7 +32,8 @@ export function initialState(seed = null, calendarId = '1448-1449') {
       semester: 1,
     },
     settings: {
-      activityDays: { low: ['mon', 'wed'], up: ['mon', 'wed'] },
+      activityDays: {}, // تعديل أيام النشاط لكل مرحلة (فاضي = افتراضي المرحلة)
+      activityDaysByGrade: {}, // تعديل لصف معيّن (مثل أول ثانوي)
       periodsPerDay: 7,
       sessionOverrides: {},
       quotaPolicy: { percent: 10, allowOverride: false },
@@ -79,7 +82,11 @@ export function migrateState(raw, seed) {
   if (!raw || typeof raw !== 'object') return null;
   let s = { ...raw };
   if (!s.schemaVersion) s.schemaVersion = 1;
-  // إصدارات لاحقة: if (s.schemaVersion < 2) { ...; s.schemaVersion = 2; }
+  if (s.schemaVersion < 2) {
+    // الإصدار ٢: تعدد المراحل — المدارس القديمة ابتدائية
+    s.school = { types: ['primary'], ...(s.school || {}) };
+    s.schemaVersion = 2;
+  }
   const base = initialState(seed, s.school?.academicYear);
   s.school = { ...base.school, ...(s.school || {}) };
   s.settings = { ...base.settings, ...(s.settings || {}), quotaPolicy: { ...base.settings.quotaPolicy, ...(s.settings?.quotaPolicy || {}) } };

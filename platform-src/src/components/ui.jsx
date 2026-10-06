@@ -126,7 +126,7 @@ export function ToastProvider({ children }) {
   const [items, setItems] = useState([]);
   const push = useCallback((text, tone = 'ok', ms = 2800) => {
     const id = Math.random().toString(36).slice(2);
-    const clean = String(text).replace(/\s*✓\s*$/, '');
+    const clean = String(text).replace(/\s*✓/g, '').trim();
     setItems((l) => [...l.slice(-2), { id, text: clean, tone }]);
     setTimeout(() => setItems((l) => l.filter((x) => x.id !== id)), ms);
   }, []);

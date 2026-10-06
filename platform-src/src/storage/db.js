@@ -43,26 +43,42 @@ function tx(db, store, mode, fn) {
 function lsGet(k) { try { return localStorage.getItem(LS_PREFIX + k); } catch { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(LS_PREFIX + k, v); return true; } catch { return false; } }
 
-export const storage = {
-  async loadState() {
-    const db = await openDB();
-    if (db) {
-      try {
-        const v = await tx(db, 'kv', 'readonly', (s) => s.get(STATE_KEY));
-        if (v) return v;
-      } catch { /* نكمل للبديل */ }
-    }
-    const raw = lsGet(STATE_KEY);
-    if (raw) { try { return JSON.parse(raw); } catch { return null; } }
-    return null;
-  },
+const REGISTRY_KEY = 'schools:v1';
+const stateKey = (id) => (id ? `state:${id}` : STATE_KEY);
 
-  async saveState(state) {
+async function kvRead(key) {
+  const db = await openDB();
+  if (db) {
+    try {
+      const v = await tx(db, 'kv', 'readonly', (s) => s.get(key));
+      if (v !== undefined && v !== null) return v;
+    } catch { /* نكمل للبديل */ }
+  }
+  const raw = lsGet(key);
+  if (raw) { try { return JSON.parse(raw); } catch { return null; } }
+  return null;
+}
+
+async function kvWrite(key, value) {
+  const db = await openDB();
+  if (db) {
+    try { await tx(db, 'kv', 'readwrite', (s) => s.put(value, key)); return true; } catch { /* بديل */ }
+  }
+  return lsSet(key, JSON.stringify(value));
+}
+
+export const storage = {
+  /** سجل المدارس: {current, schools:[{id, name, types, updatedAt}]} */
+  async loadRegistry() { return kvRead(REGISTRY_KEY); },
+  async saveRegistry(reg) { return kvWrite(REGISTRY_KEY, reg); },
+
+  /** حالة مدرسة (بدون معرّف = الحالة القديمة قبل تعدد المدارس) */
+  async loadState(id = null) { return kvRead(stateKey(id)); },
+  async saveState(state) { return kvWrite(stateKey(state?.school?.id), state); },
+  async deleteState(id) {
     const db = await openDB();
-    if (db) {
-      try { await tx(db, 'kv', 'readwrite', (s) => s.put(state, STATE_KEY)); return true; } catch { /* بديل */ }
-    }
-    return lsSet(STATE_KEY, JSON.stringify(state));
+    if (db) { try { await tx(db, 'kv', 'readwrite', (s) => s.delete(stateKey(id))); } catch { /* */ } }
+    try { localStorage.removeItem(LS_PREFIX + stateKey(id)); } catch { /* */ }
   },
 
   async putFile(key, blob) {

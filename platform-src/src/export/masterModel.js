@@ -19,7 +19,7 @@ export function buildMasterModel(state, catalog, derived, { scope } = {}) {
   const dayIndex = {};
   weeks.forEach((w) => w.days.forEach((d) => { dayIndex[d.date] = d; }));
 
-  const programsByStage = { low: {}, up: {} };
+  const programsByStage = Object.fromEntries(catalog.stages.map((s) => [s.id, {}]));
   const assign = [];
   plans.forEach((plan) => {
     const sched = derived.schedules[plan.id];
@@ -60,7 +60,10 @@ export function buildMasterModel(state, catalog, derived, { scope } = {}) {
     a.remaining = q.limit == null ? null : q.limit - usedBy[a.teacherId];
   });
 
+  const stagesUsed = catalog.stages.map((s) => s.id).filter((id) => Object.values(programsByStage[id]).some((l) => l.length));
   return {
+    stagesUsed,
+    gregorianLabel: catalog.calendar.gregorianLabel ? catalog.calendar.gregorianLabel.split(/\s*[–-]\s*/).join(' – ') : '',
     school: state.school,
     domains: catalog.domains,
     periods: maxP,

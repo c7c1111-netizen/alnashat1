@@ -14,6 +14,7 @@ import Evidence from './pages/Evidence.jsx';
 import Reports from './pages/Reports.jsx';
 import ExportCenter from './pages/ExportCenter.jsx';
 import Settings from './pages/Settings.jsx';
+import Setup from './pages/Setup.jsx';
 
 function More() {
   return (
@@ -42,6 +43,7 @@ function Router() {
   else if (a === 'reports') page = <Reports query={route.query} />;
   else if (a === 'export') page = <ExportCenter />;
   else if (a === 'settings') page = <Settings />;
+  else if (a === 'setup') page = <Setup />;
   else if (a === 'more') page = <More />;
   else page = <div className="page"><Card><p>الصفحة غير موجودة. <a href="#/">الرئيسية</a></p></Card></div>;
   return <Shell route={route}>{page}</Shell>;

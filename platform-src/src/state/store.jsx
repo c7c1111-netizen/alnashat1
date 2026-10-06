@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState, useCallback } from 'react';
 import { storage } from '../storage/db.js';
 import { initialState, migrateState } from './model.js';
+import { uid } from '../utils/ids.js';
 import { loadCatalog } from '../services/catalog.js';
 import { scheduleAll } from '../scheduler/schedule.js';
 import { allIssues } from '../validation/conflicts.js';
@@ -72,6 +73,7 @@ export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null);
   const [error, setError] = useState(null);
   const [save, setSave] = useState({ status: 'idle', at: null });
+  const [registry, setRegistry] = useState(null);
   const loaded = useRef(false);
   const timer = useRef(null);
   const latest = useRef(null);
@@ -79,10 +81,26 @@ export function AppProvider({ children }) {
   useEffect(() => {
     (async () => {
       try {
-        const saved = await storage.loadState();
+        let reg = await storage.loadRegistry();
+        let saved = null;
+        if (!reg) {
+          // أول تشغيل بعد دعم تعدد المدارس: الحالة القديمة تصير «المدرسة الأولى»
+          saved = await storage.loadState(null);
+          const id = 'school_main';
+          if (saved) { saved = { ...saved, school: { ...saved.school, id } }; await storage.saveState(saved); }
+          reg = { current: id, schools: [{ id, name: saved?.school?.name || '', types: saved?.school?.types || ['primary'], updatedAt: Date.now() }] };
+          await storage.saveRegistry(reg);
+        } else {
+          saved = await storage.loadState(reg.current);
+        }
         const cat = await loadCatalog(saved?.school?.academicYear);
-        const st = saved ? migrateState(saved, cat.seed) : initialState(cat.seed, cat.calendar.id);
+        const entry = reg.schools.find((x) => x.id === reg.current);
+        const st = saved
+          ? migrateState(saved, cat.seed)
+          : initialState(reg.current === 'school_main' ? cat.seed : null, cat.calendar.id, { id: reg.current, types: entry?.types });
+        st.school.id = reg.current;
         setCatalog(cat);
+        setRegistry(reg);
         dispatch({ type: 'replace', state: st });
         loaded.current = true;
         setSave({ status: saved ? 'saved' : 'idle', at: saved?.meta?.updatedAt || null });
@@ -99,9 +117,67 @@ export function AppProvider({ children }) {
     clearTimeout(timer.current);
     timer.current = null;
     setSave((s) => ({ ...s, status: 'saving' }));
-    const ok = await storage.saveState(latest.current);
+    const cur = latest.current;
+    const ok = await storage.saveState(cur);
     setSave({ status: ok ? 'saved' : 'error', at: Date.now() });
+    // تحديث اسم المدرسة ونوعها في سجل المدارس
+    setRegistry((reg) => {
+      if (!reg) return reg;
+      const e = reg.schools.find((x) => x.id === cur.school.id);
+      if (e && e.name === cur.school.name && String(e.types) === String(cur.school.types)) return reg;
+      const next = { ...reg, schools: reg.schools.map((x) => (x.id === cur.school.id ? { ...x, name: cur.school.name, types: cur.school.types, updatedAt: Date.now() } : x)) };
+      storage.saveRegistry(next);
+      return next;
+    });
   }, []);
+
+  // ===== تعدد المدارس =====
+  const switchSchool = useCallback(async (id) => {
+    await flush();
+    const reg = { ...registry, current: id };
+    const saved = await storage.loadState(id);
+    const entry = reg.schools.find((x) => x.id === id);
+    const st = saved ? migrateState(saved, catalog.seed) : initialState(null, catalog.calendar.id, { id, types: entry?.types });
+    st.school.id = id;
+    await storage.saveRegistry(reg);
+    setRegistry(reg);
+    latest.current = null;
+    dispatch({ type: 'replace', state: st });
+    setSave({ status: 'saved', at: st.meta?.updatedAt || Date.now() });
+  }, [registry, catalog, flush]);
+
+  const createSchool = useCallback(async ({ name, types }) => {
+    await flush();
+    const id = uid('school');
+    const st = initialState(null, catalog.calendar.id, { id, types });
+    st.school.name = name || '';
+    st.school.stageName = catalog.schoolTypeById[types[0]]?.name || '';
+    st.settings.periodsPerDay = Math.max(...types.map((t) => catalog.schoolTypeById[t]?.periodsPerDay || 7));
+    st.meta.updatedAt = Date.now() + 1;
+    await storage.saveState(st);
+    const reg = { current: id, schools: [...registry.schools, { id, name: st.school.name, types, updatedAt: Date.now() }] };
+    await storage.saveRegistry(reg);
+    setRegistry(reg);
+    latest.current = null;
+    dispatch({ type: 'replace', state: st });
+    return id;
+  }, [registry, catalog, flush]);
+
+  const deleteSchool = useCallback(async (id) => {
+    if (registry.schools.length <= 1) return false;
+    const other = registry.schools.find((x) => x.id !== id);
+    if (id === registry.current) await switchSchool(other.id);
+    const gone = await storage.loadState(id);
+    for (const e of gone?.evidence || []) if (e.fileKey) await storage.deleteFile(e.fileKey);
+    await storage.deleteState(id);
+    await storage.kvDelete(`template:${id}`);
+    setRegistry((reg) => {
+      const next = { ...reg, current: reg.current === id ? other.id : reg.current, schools: reg.schools.filter((x) => x.id !== id) };
+      storage.saveRegistry(next);
+      return next;
+    });
+    return true;
+  }, [registry, switchSchool]);
 
   // حفظ تلقائي بعد كل تعديل
   useEffect(() => {
@@ -127,7 +203,8 @@ export function AppProvider({ children }) {
     return { schedules, issues };
   }, [state, catalog]);
 
-  const value = useMemo(() => ({ state, catalog, dispatch, derived, save, flush }), [state, catalog, derived, save, flush]);
+  const value = useMemo(() => ({ state, catalog, dispatch, derived, save, flush, registry, switchSchool, createSchool, deleteSchool }),
+    [state, catalog, derived, save, flush, registry, switchSchool, createSchool, deleteSchool]);
 
   if (error) {
     return (

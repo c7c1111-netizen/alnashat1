@@ -25,9 +25,9 @@ const Page = ({ children, model, calendarLabel, head = true }) => (
   <section className="op-page">{head && <Head model={model} calendarLabel={calendarLabel} />}<div className="op-body">{children}</div></section>
 );
 
-export default function OfficialPrintView({ model, calendarLabel, stageNames }) {
-  const doms = model.domains.filter((d) => OFFICIAL.includes(d.id) || ['low', 'up'].some((s) => model.programsByStage[s][d.id]?.length));
-  const stages = ['low', 'up'].filter((s) => Object.values(model.programsByStage[s]).some((l) => l.length));
+export default function OfficialPrintView({ model, calendarLabel, stageLabels }) {
+  const stages = model.stagesUsed || [];
+  const doms = model.domains.filter((d) => OFFICIAL.includes(d.id) || stages.some((s) => model.programsByStage[s][d.id]?.length));
   const assignPages = [];
   for (let i = 0; i < Math.max(1, model.assign.length); i += 14) assignPages.push(model.assign.slice(i, i + 14));
   const P = model.periods;
@@ -51,14 +51,14 @@ export default function OfficialPrintView({ model, calendarLabel, stageNames }) 
           {OFFICIAL.map((id) => { const d = model.domains.find((x) => x.id === id); return <tr key={id}><td style={{ background: d.color }}>{d.name}</td><td>{d.goal}</td></tr>; })}
         </tbody></table>
       </Page>
-      {(stages.length ? stages : ['low']).map((st) => {
-        const lists = doms.map((d) => model.programsByStage[st][d.id] || []);
+      {(stages.length ? stages : [null]).map((st) => {
+        const lists = doms.map((d) => (st ? model.programsByStage[st][d.id] : null) || []);
         const n = Math.max(8, ...lists.map((l) => l.length));
         return (
-          <Page key={st} model={model} calendarLabel={calendarLabel}>
+          <Page key={st || 'none'} model={model} calendarLabel={calendarLabel}>
             <div className="op-h2">برامج النشاط الطلابي</div>
             <table className="op-tbl"><tbody>
-              <tr><th colSpan={doms.length * 2 + 1} className="op-stage">المرحلة: {model.school.stageName} — {stageNames[st]}</th></tr>
+              <tr><th colSpan={doms.length * 2 + 1} className="op-stage">المرحلة: {st ? stageLabels[st] : model.school.stageName}</th></tr>
               <tr><th>المجال</th>{doms.map((d) => <React.Fragment key={d.id}><th style={{ background: d.color, color: '#fff' }}>{d.name}</th><th className="op-cnt small">عدد الحصص</th></React.Fragment>)}</tr>
               {Array.from({ length: n }, (_, i) => (
                 <tr key={i}>

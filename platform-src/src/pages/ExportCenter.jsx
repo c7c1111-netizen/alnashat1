@@ -8,12 +8,14 @@ import OfficialPrintView from '../export/OfficialPrintView.jsx';
 import { downloadBlob, downloadJSON, printElement, elementToPng, fetchBytes } from '../export/files.js';
 import { createBackup } from '../storage/backup.js';
 import { storage } from '../storage/db.js';
+import { stageDisplayName } from '../services/catalog.js';
 import { arNum, todayISO } from '../utils/arabic.js';
 
-export const TEMPLATE_KEY = 'template:custom';
+/** قالب Word خاص بكل مدرسة (أو القالب الرسمي) */
+export const templateKey = (schoolId) => `template:${schoolId || 'school_main'}`;
 
-export async function templateBytes() {
-  const custom = await storage.kvGet(TEMPLATE_KEY);
+export async function templateBytes(schoolId) {
+  const custom = (await storage.kvGet(templateKey(schoolId))) || (schoolId === 'school_main' ? await storage.kvGet('template:custom') : null);
   if (custom?.bytes) return new Uint8Array(custom.bytes);
   return fetchBytes('templates/official-plan.docx');
 }
@@ -27,7 +29,7 @@ export default function ExportCenter() {
   const [week, setWeek] = useState(0);
   const scope = state.settings.exportScope || 'all';
   const model = useMemo(() => buildMasterModel(state, catalog, derived, { scope }), [state, catalog, derived, scope]);
-  const stageNames = Object.fromEntries(catalog.stages.map((s) => [s.id, s.name]));
+  const stageLabels = Object.fromEntries(catalog.stages.map((s) => [s.id, stageDisplayName(catalog, s.id)]));
   const base = `خطة برامج النشاط الطلابي${state.school.name ? ` - ${state.school.name}` : ''} - ${catalog.calendar.id}`;
   const errors = derived.issues.filter((i) => i.severity === 'error').length;
 
@@ -35,7 +37,7 @@ export default function ExportCenter() {
     setBusy('word');
     try {
       const { fillOfficialTemplate } = await import('../export/officialDocx.js');
-      const blob = await fillOfficialTemplate(await templateBytes(), model, { stageNames });
+      const blob = await fillOfficialTemplate(await templateBytes(state.school.id), model, { stageLabels });
       downloadBlob(blob, `${base}.docx`);
       toast('تم تجهيز ملف Word من القالب الرسمي ✓');
     } catch (e) { console.error(e); toast(e.message || 'تعذر إنشاء ملف Word', 'error'); }
@@ -104,7 +106,7 @@ export default function ExportCenter() {
       </div>
       <Card title="معاينة ملف الخطة" actions={<Button onClick={() => setPreview(!preview)}>{preview ? 'إخفاء المعاينة' : 'عرض المعاينة'}</Button>}>
         {preview ? (
-          <div className="op-viewer" ref={ref}><OfficialPrintView model={model} calendarLabel={catalog.calendar.label} stageNames={stageNames} /></div>
+          <div className="op-viewer" ref={ref}><OfficialPrintView model={model} calendarLabel={catalog.calendar.label} stageLabels={stageLabels} /></div>
         ) : <div ref={ref}><p className="muted">المعاينة تعرض الصفحات نفسها اللي بتنطبع: الغلاف، المجالات، البرامج لكل مرحلة، جدول الإسناد، والجداول الأسبوعية.</p></div>}
       </Card>
     </div>

@@ -7,12 +7,14 @@ import { programRows } from '../services/insights.js';
 import { arNum, percent } from '../utils/arabic.js';
 import { cleanLine, cleanInt } from '../utils/sanitize.js';
 import { uid } from '../utils/ids.js';
+import { TeacherBulkAdd } from '../components/school.jsx';
 
 export default function Teachers() {
   const { state, catalog, derived, dispatch } = useApp();
   const confirm = useConfirm();
   const toast = useToast();
   const [edit, setEdit] = useState(null);
+  const [bulk, setBulk] = useState(false);
   const [q, setQ] = useState('');
   const rows = useMemo(() => programRows(state, catalog, derived), [state, catalog, derived]);
   const list = state.teachers.filter((t) => !q.trim() || `${t.name} ${t.subject}`.includes(q.trim()));
@@ -25,7 +27,10 @@ export default function Teachers() {
 
   return (
     <div className="page">
-      <PageHead title="المعلمون" subtitle="نسبة ١٠٪ والبرامج المسندة ونسبة الإنجاز لكل معلم" actions={<Button variant="primary" icon="+" onClick={() => setEdit({ id: uid('t'), name: '', subject: '', weeklyLoad: null, quotaOverride: null, isNew: true })}>معلم جديد</Button>} />
+      <PageHead title="المعلمون" subtitle="نسبة ١٠٪ والبرامج المسندة ونسبة الإنجاز لكل معلم" actions={<>
+        <Button variant="primary" icon="📋" onClick={() => setBulk(true)}>إضافة عدة معلمين</Button>
+        <Button icon="+" onClick={() => setEdit({ id: uid('t'), name: '', subject: '', weeklyLoad: null, quotaOverride: null, isNew: true })}>معلم واحد</Button>
+      </>} />
       <input type="search" className="search wide" placeholder="🔍 ابحث بالاسم أو المادة" value={q} onChange={(e) => setQ(e.target.value)} aria-label="بحث عن معلم" />
       {list.length ? (
         <div className="teacher-grid">
@@ -62,6 +67,7 @@ export default function Teachers() {
           })}
         </div>
       ) : <Card><Empty icon="👨‍🏫" title="ما فيه معلمون" /></Card>}
+      {bulk && <Modal title="إضافة عدة معلمين" onClose={() => setBulk(false)} size="md"><TeacherBulkAdd onDone={() => setBulk(false)} /></Modal>}
       {edit && <TeacherDialog teacher={edit} onClose={() => setEdit(null)} onSave={(t) => { const { isNew, ...item } = t; dispatch({ type: 'teacher/upsert', item }); toast('تم حفظ بيانات المعلم ✓'); setEdit(null); }} />}
     </div>
   );
