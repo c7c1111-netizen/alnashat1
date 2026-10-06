@@ -1,0 +1,1317 @@
+{
+ "id": "1448-1449",
+ "label": "1448 – 1449 هـ",
+ "gregorianLabel": "2026 – 2027",
+ "source": "التقويم الدراسي 1448هـ — الدراسة من الأحد 23 أغسطس 2026",
+ "hijriMonths": {
+  "1": "محرم",
+  "2": "صفر",
+  "3": "ربيع الأول",
+  "4": "ربيع الآخر",
+  "5": "جمادى الأولى",
+  "6": "جمادى الآخرة",
+  "7": "رجب",
+  "8": "شعبان",
+  "9": "رمضان",
+  "10": "شوال",
+  "11": "ذو القعدة",
+  "12": "ذو الحجة"
+ },
+ "activityDaysDefault": {
+  "low": [
+   "mon",
+   "wed"
+  ],
+  "up": [
+   "mon",
+   "wed"
+  ]
+ },
+ "periodsPerDay": 7,
+ "semesters": [
+  {
+   "id": 1,
+   "name": "الفصل الدراسي الأول",
+   "start": "2026-08-23",
+   "end": "2027-01-07",
+   "weeks": [
+    {
+     "n": 1,
+     "label": "1",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-08-23",
+       "day": "sun",
+       "hijri": {
+        "d": 10,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-08-24",
+       "day": "mon",
+       "hijri": {
+        "d": 11,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-08-25",
+       "day": "tue",
+       "hijri": {
+        "d": 12,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-08-26",
+       "day": "wed",
+       "hijri": {
+        "d": 13,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-08-27",
+       "day": "thu",
+       "hijri": {
+        "d": 14,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 2,
+     "label": "2",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-08-30",
+       "day": "sun",
+       "hijri": {
+        "d": 17,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-08-31",
+       "day": "mon",
+       "hijri": {
+        "d": 18,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-01",
+       "day": "tue",
+       "hijri": {
+        "d": 19,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-02",
+       "day": "wed",
+       "hijri": {
+        "d": 20,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-03",
+       "day": "thu",
+       "hijri": {
+        "d": 21,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 3,
+     "label": "3",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-09-06",
+       "day": "sun",
+       "hijri": {
+        "d": 24,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-07",
+       "day": "mon",
+       "hijri": {
+        "d": 25,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-08",
+       "day": "tue",
+       "hijri": {
+        "d": 26,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-09",
+       "day": "wed",
+       "hijri": {
+        "d": 27,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-10",
+       "day": "thu",
+       "hijri": {
+        "d": 28,
+        "m": 3,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 4,
+     "label": "4",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-09-13",
+       "day": "sun",
+       "hijri": {
+        "d": 2,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-14",
+       "day": "mon",
+       "hijri": {
+        "d": 3,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-15",
+       "day": "tue",
+       "hijri": {
+        "d": 4,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-16",
+       "day": "wed",
+       "hijri": {
+        "d": 5,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-17",
+       "day": "thu",
+       "hijri": {
+        "d": 6,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 5,
+     "label": "5",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-09-20",
+       "day": "sun",
+       "hijri": {
+        "d": 9,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-21",
+       "day": "mon",
+       "hijri": {
+        "d": 10,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-22",
+       "day": "tue",
+       "hijri": {
+        "d": 11,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-23",
+       "day": "wed",
+       "hijri": {
+        "d": 12,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "holiday",
+       "note": "إجازة اليوم الوطني"
+      },
+      {
+       "date": "2026-09-24",
+       "day": "thu",
+       "hijri": {
+        "d": 13,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "holiday",
+       "note": "إجازة اليوم الوطني"
+      }
+     ]
+    },
+    {
+     "n": 6,
+     "label": "6",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-09-27",
+       "day": "sun",
+       "hijri": {
+        "d": 16,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-28",
+       "day": "mon",
+       "hijri": {
+        "d": 17,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-29",
+       "day": "tue",
+       "hijri": {
+        "d": 18,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-09-30",
+       "day": "wed",
+       "hijri": {
+        "d": 19,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-01",
+       "day": "thu",
+       "hijri": {
+        "d": 20,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 7,
+     "label": "7",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-10-04",
+       "day": "sun",
+       "hijri": {
+        "d": 23,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-05",
+       "day": "mon",
+       "hijri": {
+        "d": 24,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-06",
+       "day": "tue",
+       "hijri": {
+        "d": 25,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-07",
+       "day": "wed",
+       "hijri": {
+        "d": 26,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-08",
+       "day": "thu",
+       "hijri": {
+        "d": 27,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 8,
+     "label": "8",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-10-11",
+       "day": "sun",
+       "hijri": {
+        "d": 30,
+        "m": 4,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-12",
+       "day": "mon",
+       "hijri": {
+        "d": 1,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-13",
+       "day": "tue",
+       "hijri": {
+        "d": 2,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-14",
+       "day": "wed",
+       "hijri": {
+        "d": 3,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-15",
+       "day": "thu",
+       "hijri": {
+        "d": 4,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 9,
+     "label": "9",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-10-18",
+       "day": "sun",
+       "hijri": {
+        "d": 7,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-19",
+       "day": "mon",
+       "hijri": {
+        "d": 8,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-20",
+       "day": "tue",
+       "hijri": {
+        "d": 9,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-21",
+       "day": "wed",
+       "hijri": {
+        "d": 10,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-22",
+       "day": "thu",
+       "hijri": {
+        "d": 11,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 10,
+     "label": "10",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-10-25",
+       "day": "sun",
+       "hijri": {
+        "d": 14,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-26",
+       "day": "mon",
+       "hijri": {
+        "d": 15,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-27",
+       "day": "tue",
+       "hijri": {
+        "d": 16,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-28",
+       "day": "wed",
+       "hijri": {
+        "d": 17,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-10-29",
+       "day": "thu",
+       "hijri": {
+        "d": 18,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 11,
+     "label": "11",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-11-01",
+       "day": "sun",
+       "hijri": {
+        "d": 21,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-11-02",
+       "day": "mon",
+       "hijri": {
+        "d": 22,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-11-03",
+       "day": "tue",
+       "hijri": {
+        "d": 23,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-11-04",
+       "day": "wed",
+       "hijri": {
+        "d": 24,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-11-05",
+       "day": "thu",
+       "hijri": {
+        "d": 25,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 12,
+     "label": "12",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-11-08",
+       "day": "sun",
+       "hijri": {
+        "d": 28,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-11-09",
+       "day": "mon",
+       "hijri": {
+        "d": 29,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-11-10",
+       "day": "tue",
+       "hijri": {
+        "d": 30,
+        "m": 5,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-11-11",
+       "day": "wed",
+       "hijri": {
+        "d": 1,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-11-12",
+       "day": "thu",
+       "hijri": {
+        "d": 2,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 13,
+     "label": "13",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-11-15",
+       "day": "sun",
+       "hijri": {
+        "d": 5,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-11-16",
+       "day": "mon",
+       "hijri": {
+        "d": 6,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-11-17",
+       "day": "tue",
+       "hijri": {
+        "d": 7,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-11-18",
+       "day": "wed",
+       "hijri": {
+        "d": 8,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-11-19",
+       "day": "thu",
+       "hijri": {
+        "d": 9,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": null,
+     "label": "إجازة",
+     "type": "holiday",
+     "name": "إجازة الخريف",
+     "days": [
+      {
+       "date": "2026-11-22",
+       "day": "sun",
+       "hijri": {
+        "d": 12,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "holiday",
+       "note": "إجازة الخريف"
+      },
+      {
+       "date": "2026-11-23",
+       "day": "mon",
+       "hijri": {
+        "d": 13,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "holiday",
+       "note": "إجازة الخريف"
+      },
+      {
+       "date": "2026-11-24",
+       "day": "tue",
+       "hijri": {
+        "d": 14,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "holiday",
+       "note": "إجازة الخريف"
+      },
+      {
+       "date": "2026-11-25",
+       "day": "wed",
+       "hijri": {
+        "d": 15,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "holiday",
+       "note": "إجازة الخريف"
+      },
+      {
+       "date": "2026-11-26",
+       "day": "thu",
+       "hijri": {
+        "d": 16,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "holiday",
+       "note": "إجازة الخريف"
+      }
+     ]
+    },
+    {
+     "n": 14,
+     "label": "14",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-11-29",
+       "day": "sun",
+       "hijri": {
+        "d": 19,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-11-30",
+       "day": "mon",
+       "hijri": {
+        "d": 20,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-01",
+       "day": "tue",
+       "hijri": {
+        "d": 21,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-02",
+       "day": "wed",
+       "hijri": {
+        "d": 22,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-03",
+       "day": "thu",
+       "hijri": {
+        "d": 23,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 15,
+     "label": "15",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-12-06",
+       "day": "sun",
+       "hijri": {
+        "d": 26,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-07",
+       "day": "mon",
+       "hijri": {
+        "d": 27,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-08",
+       "day": "tue",
+       "hijri": {
+        "d": 28,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-09",
+       "day": "wed",
+       "hijri": {
+        "d": 29,
+        "m": 6,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-10",
+       "day": "thu",
+       "hijri": {
+        "d": 1,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 16,
+     "label": "16",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-12-13",
+       "day": "sun",
+       "hijri": {
+        "d": 4,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-14",
+       "day": "mon",
+       "hijri": {
+        "d": 5,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-15",
+       "day": "tue",
+       "hijri": {
+        "d": 6,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-16",
+       "day": "wed",
+       "hijri": {
+        "d": 7,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-17",
+       "day": "thu",
+       "hijri": {
+        "d": 8,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 17,
+     "label": "17",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-12-20",
+       "day": "sun",
+       "hijri": {
+        "d": 11,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-21",
+       "day": "mon",
+       "hijri": {
+        "d": 12,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-22",
+       "day": "tue",
+       "hijri": {
+        "d": 13,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-23",
+       "day": "wed",
+       "hijri": {
+        "d": 14,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-24",
+       "day": "thu",
+       "hijri": {
+        "d": 15,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 18,
+     "label": "18",
+     "type": "study",
+     "days": [
+      {
+       "date": "2026-12-27",
+       "day": "sun",
+       "hijri": {
+        "d": 18,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-28",
+       "day": "mon",
+       "hijri": {
+        "d": 19,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-29",
+       "day": "tue",
+       "hijri": {
+        "d": 20,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-30",
+       "day": "wed",
+       "hijri": {
+        "d": 21,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      },
+      {
+       "date": "2026-12-31",
+       "day": "thu",
+       "hijri": {
+        "d": 22,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "study"
+      }
+     ]
+    },
+    {
+     "n": 19,
+     "label": "19",
+     "type": "exams",
+     "name": "اختبارات نهاية الفصل الدراسي الأول",
+     "days": [
+      {
+       "date": "2027-01-03",
+       "day": "sun",
+       "hijri": {
+        "d": 25,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "exams",
+       "note": "اختبارات نهاية الفصل الدراسي الأول"
+      },
+      {
+       "date": "2027-01-04",
+       "day": "mon",
+       "hijri": {
+        "d": 26,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "exams",
+       "note": "اختبارات نهاية الفصل الدراسي الأول"
+      },
+      {
+       "date": "2027-01-05",
+       "day": "tue",
+       "hijri": {
+        "d": 27,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "exams",
+       "note": "اختبارات نهاية الفصل الدراسي الأول"
+      },
+      {
+       "date": "2027-01-06",
+       "day": "wed",
+       "hijri": {
+        "d": 28,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "exams",
+       "note": "اختبارات نهاية الفصل الدراسي الأول"
+      },
+      {
+       "date": "2027-01-07",
+       "day": "thu",
+       "hijri": {
+        "d": 29,
+        "m": 7,
+        "y": 1448
+       },
+       "type": "exams",
+       "note": "اختبارات نهاية الفصل الدراسي الأول"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "holidays": [
+  {
+   "name": "إجازة اليوم الوطني",
+   "from": "2026-09-23",
+   "to": "2026-09-24"
+  },
+  {
+   "name": "إجازة الخريف",
+   "from": "2026-11-20",
+   "to": "2026-11-28"
+  }
+ ],
+ "occasions": [
+  {
+   "id": "national-day",
+   "name": "اليوم الوطني",
+   "recurrence": {
+    "type": "gregorian",
+    "month": 9,
+    "day": 23
+   }
+  },
+  {
+   "id": "teachers-day",
+   "name": "يوم المعلم العالمي",
+   "recurrence": {
+    "type": "gregorian",
+    "month": 10,
+    "day": 5
+   }
+  },
+  {
+   "id": "tolerance-day",
+   "name": "يوم التسامح العالمي",
+   "recurrence": {
+    "type": "gregorian",
+    "month": 11,
+    "day": 16
+   }
+  },
+  {
+   "id": "children-day",
+   "name": "اليوم العالمي للطفل",
+   "recurrence": {
+    "type": "gregorian",
+    "month": 11,
+    "day": 20
+   }
+  },
+  {
+   "id": "disability-day",
+   "name": "اليوم العالمي لذوي الإعاقة",
+   "recurrence": {
+    "type": "gregorian",
+    "month": 12,
+    "day": 3
+   }
+  },
+  {
+   "id": "arabic-day",
+   "name": "يوم اللغة العربية العالمي",
+   "recurrence": {
+    "type": "gregorian",
+    "month": 12,
+    "day": 18
+   }
+  },
+  {
+   "id": "education-day",
+   "name": "اليوم العالمي للتعليم",
+   "recurrence": {
+    "type": "gregorian",
+    "month": 1,
+    "day": 24
+   }
+  },
+  {
+   "id": "founding-day",
+   "name": "يوم التأسيس",
+   "recurrence": {
+    "type": "gregorian",
+    "month": 2,
+    "day": 22
+   }
+  },
+  {
+   "id": "flag-day",
+   "name": "يوم العلم",
+   "recurrence": {
+    "type": "gregorian",
+    "month": 3,
+    "day": 11
+   }
+  },
+  {
+   "id": "green-day",
+   "name": "يوم السعودية الخضراء",
+   "recurrence": {
+    "type": "gregorian",
+    "month": 3,
+    "day": 27
+   }
+  },
+  {
+   "id": "health-day",
+   "name": "يوم الصحة العالمي",
+   "recurrence": {
+    "type": "gregorian",
+    "month": 4,
+    "day": 7
+   }
+  },
+  {
+   "id": "family-day",
+   "name": "اليوم الدولي للأسرة",
+   "recurrence": {
+    "type": "gregorian",
+    "month": 5,
+    "day": 15
+   }
+  }
+ ]
+}

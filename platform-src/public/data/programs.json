@@ -1,0 +1,684 @@
+{
+  "version": 1,
+  "note": "sessions: low = الصفوف الأولية، up = الصفوف العليا، 0 = غير مطروح للمرحلة",
+  "programs": [
+    {
+      "id": "citizenship-01",
+      "domainId": "citizenship",
+      "name": "التطوع الطلابي",
+      "sessions": {
+        "low": 4,
+        "up": 4
+      }
+    },
+    {
+      "id": "citizenship-02",
+      "domainId": "citizenship",
+      "name": "مهارات طموحة",
+      "sessions": {
+        "low": 6,
+        "up": 4
+      }
+    },
+    {
+      "id": "citizenship-03",
+      "domainId": "citizenship",
+      "name": "نموذج الأمم المتحدة",
+      "sessions": {
+        "low": 6,
+        "up": 8
+      }
+    },
+    {
+      "id": "citizenship-04",
+      "domainId": "citizenship",
+      "name": "قيمنا حياة",
+      "sessions": {
+        "low": 0,
+        "up": 12
+      }
+    },
+    {
+      "id": "citizenship-05",
+      "domainId": "citizenship",
+      "name": "إرث وطموح",
+      "sessions": {
+        "low": 4,
+        "up": 4
+      }
+    },
+    {
+      "id": "citizenship-06",
+      "domainId": "citizenship",
+      "name": "ريادة الأعمال",
+      "sessions": {
+        "low": 4,
+        "up": 4
+      }
+    },
+    {
+      "id": "citizenship-07",
+      "domainId": "citizenship",
+      "name": "السيرة النبوية",
+      "sessions": {
+        "low": 4,
+        "up": 4
+      }
+    },
+    {
+      "id": "science-01",
+      "domainId": "science",
+      "name": "برنامج تطبيقات STEM",
+      "sessions": {
+        "low": 3,
+        "up": 5
+      }
+    },
+    {
+      "id": "science-02",
+      "domainId": "science",
+      "name": "التصميم والابتكار التقني",
+      "sessions": {
+        "low": 2,
+        "up": 5
+      }
+    },
+    {
+      "id": "science-03",
+      "domainId": "science",
+      "name": "الفضاء والاستكشاف العلمي",
+      "sessions": {
+        "low": 3,
+        "up": 5
+      }
+    },
+    {
+      "id": "science-04",
+      "domainId": "science",
+      "name": "الاستدامة وجودة الحياة",
+      "sessions": {
+        "low": 3,
+        "up": 4
+      }
+    },
+    {
+      "id": "science-05",
+      "domainId": "science",
+      "name": "الذكاء الاصطناعي",
+      "sessions": {
+        "low": 10,
+        "up": 10
+      }
+    },
+    {
+      "id": "science-06",
+      "domainId": "science",
+      "name": "إنترنت الأشياء",
+      "sessions": {
+        "low": 3,
+        "up": 4
+      }
+    },
+    {
+      "id": "science-07",
+      "domainId": "science",
+      "name": "الأمن السيبراني",
+      "sessions": {
+        "low": 4,
+        "up": 4
+      }
+    },
+    {
+      "id": "science-08",
+      "domainId": "science",
+      "name": "البحث العلمي",
+      "sessions": {
+        "low": 4,
+        "up": 4
+      }
+    },
+    {
+      "id": "science-09",
+      "domainId": "science",
+      "name": "حوكمة البيانات",
+      "sessions": {
+        "low": 3,
+        "up": 3
+      }
+    },
+    {
+      "id": "arts-01",
+      "domainId": "arts",
+      "name": "الفن السابع (السينما)",
+      "sessions": {
+        "low": 8,
+        "up": 8
+      }
+    },
+    {
+      "id": "arts-02",
+      "domainId": "arts",
+      "name": "الفنون البصرية والتشكيلية",
+      "sessions": {
+        "low": 6,
+        "up": 6
+      }
+    },
+    {
+      "id": "arts-03",
+      "domainId": "arts",
+      "name": "الأزياء السعودية",
+      "sessions": {
+        "low": 4,
+        "up": 4
+      }
+    },
+    {
+      "id": "arts-04",
+      "domainId": "arts",
+      "name": "الثقافة الإعلامية",
+      "sessions": {
+        "low": 4,
+        "up": 4
+      }
+    },
+    {
+      "id": "arts-05",
+      "domainId": "arts",
+      "name": "الفن التراثي المعاصر",
+      "sessions": {
+        "low": 5,
+        "up": 5
+      }
+    },
+    {
+      "id": "arts-06",
+      "domainId": "arts",
+      "name": "الفنون المسرحية",
+      "sessions": {
+        "low": 8,
+        "up": 8
+      }
+    },
+    {
+      "id": "arts-07",
+      "domainId": "arts",
+      "name": "الفنون الصوتية أو الفنون الموسيقية",
+      "sessions": {
+        "low": 8,
+        "up": 8
+      }
+    },
+    {
+      "id": "arts-08",
+      "domainId": "arts",
+      "name": "حكايات مرئية (أنمي استديو)",
+      "sessions": {
+        "low": 6,
+        "up": 6
+      }
+    },
+    {
+      "id": "arts-09",
+      "domainId": "arts",
+      "name": "مهارات اللغة والتواصل الثقافي",
+      "sessions": {
+        "low": 5,
+        "up": 4
+      }
+    },
+    {
+      "id": "arts-10",
+      "domainId": "arts",
+      "name": "الكتابة الإبداعية والأدبية",
+      "sessions": {
+        "low": 4,
+        "up": 5
+      }
+    },
+    {
+      "id": "arts-11",
+      "domainId": "arts",
+      "name": "الحرف والمهن",
+      "sessions": {
+        "low": 4,
+        "up": 4
+      }
+    },
+    {
+      "id": "arts-12",
+      "domainId": "arts",
+      "name": "الخط العربي",
+      "sessions": {
+        "low": 4,
+        "up": 4
+      }
+    },
+    {
+      "id": "sports-01",
+      "domainId": "sports",
+      "name": "منافسة المهارات الرياضية الجماعية",
+      "sessions": {
+        "low": 6,
+        "up": 8
+      }
+    },
+    {
+      "id": "sports-02",
+      "domainId": "sports",
+      "name": "منافسة المهارات الرياضية الفردية",
+      "sessions": {
+        "low": 8,
+        "up": 8
+      }
+    },
+    {
+      "id": "sports-03",
+      "domainId": "sports",
+      "name": "منافسة مهارات رياضات الدفاع عن النفس",
+      "sessions": {
+        "low": 8,
+        "up": 8
+      }
+    },
+    {
+      "id": "sports-04",
+      "domainId": "sports",
+      "name": "الرياضة والترفيه الإلكتروني",
+      "sessions": {
+        "low": 8,
+        "up": 8
+      }
+    },
+    {
+      "id": "sports-05",
+      "domainId": "sports",
+      "name": "الرياضات الذهنية",
+      "sessions": {
+        "low": 6,
+        "up": 8
+      }
+    },
+    {
+      "id": "sports-06",
+      "domainId": "sports",
+      "name": "الأولمبياد الرياضي",
+      "sessions": {
+        "low": 6,
+        "up": 8
+      }
+    },
+    {
+      "id": "sports-07",
+      "domainId": "sports",
+      "name": "الإسعافات الأولية",
+      "sessions": {
+        "low": 3,
+        "up": 4
+      }
+    },
+    {
+      "id": "sports-08",
+      "domainId": "sports",
+      "name": "اللياقة والصحة البدنية",
+      "sessions": {
+        "low": 2,
+        "up": 2
+      }
+    },
+    {
+      "id": "sports-09",
+      "domainId": "sports",
+      "name": "مهارات التحكيم الرياضي (أنا حكم)",
+      "sessions": {
+        "low": 3,
+        "up": 3
+      }
+    },
+    {
+      "id": "sports-10",
+      "domainId": "sports",
+      "name": "صحتي في بيئتي",
+      "sessions": {
+        "low": 3,
+        "up": 3
+      }
+    },
+    {
+      "id": "scouts-01",
+      "domainId": "scouts",
+      "name": "خيمتي الجميلة",
+      "sessions": {
+        "low": 3,
+        "up": 0
+      }
+    },
+    {
+      "id": "scouts-02",
+      "domainId": "scouts",
+      "name": "براعم البيئة والمجتمع",
+      "sessions": {
+        "low": 2,
+        "up": 0
+      }
+    },
+    {
+      "id": "scouts-03",
+      "domainId": "scouts",
+      "name": "بصمتي الكشفية",
+      "sessions": {
+        "low": 3,
+        "up": 0
+      }
+    },
+    {
+      "id": "scouts-04",
+      "domainId": "scouts",
+      "name": "براعم النور",
+      "sessions": {
+        "low": 2,
+        "up": 0
+      }
+    },
+    {
+      "id": "scouts-05",
+      "domainId": "scouts",
+      "name": "بوصلة الاكتشاف",
+      "sessions": {
+        "low": 3,
+        "up": 0
+      }
+    },
+    {
+      "id": "scouts-06",
+      "domainId": "scouts",
+      "name": "عاداتي الصحية الكشفية",
+      "sessions": {
+        "low": 2,
+        "up": 0
+      }
+    },
+    {
+      "id": "scouts-07",
+      "domainId": "scouts",
+      "name": "مهاراتي وكشفيتي",
+      "sessions": {
+        "low": 2,
+        "up": 0
+      }
+    },
+    {
+      "id": "scouts-08",
+      "domainId": "scouts",
+      "name": "خشبة وحبل",
+      "sessions": {
+        "low": 0,
+        "up": 12
+      }
+    },
+    {
+      "id": "scouts-09",
+      "domainId": "scouts",
+      "name": "أشارك مجتمعي وأزرع شجرة",
+      "sessions": {
+        "low": 0,
+        "up": 3
+      }
+    },
+    {
+      "id": "scouts-10",
+      "domainId": "scouts",
+      "name": "وطني في قلبي",
+      "sessions": {
+        "low": 0,
+        "up": 3
+      }
+    },
+    {
+      "id": "scouts-11",
+      "domainId": "scouts",
+      "name": "كنوز الصغار",
+      "sessions": {
+        "low": 0,
+        "up": 2
+      }
+    },
+    {
+      "id": "scouts-12",
+      "domainId": "scouts",
+      "name": "خيمة التجارب المسلية",
+      "sessions": {
+        "low": 0,
+        "up": 6
+      }
+    },
+    {
+      "id": "scouts-13",
+      "domainId": "scouts",
+      "name": "طبقي الكشفي",
+      "sessions": {
+        "low": 0,
+        "up": 3
+      }
+    },
+    {
+      "id": "scouts-14",
+      "domainId": "scouts",
+      "name": "صافرة واصطفاف",
+      "sessions": {
+        "low": 0,
+        "up": 2
+      }
+    },
+    {
+      "id": "occasions-01",
+      "domainId": "occasions",
+      "name": "اليوم الوطني",
+      "sessions": {
+        "low": 4,
+        "up": 4
+      },
+      "occasionId": "national-day"
+    },
+    {
+      "id": "occasions-02",
+      "domainId": "occasions",
+      "name": "يوم التأسيس",
+      "sessions": {
+        "low": 4,
+        "up": 4
+      },
+      "occasionId": "founding-day"
+    },
+    {
+      "id": "occasions-03",
+      "domainId": "occasions",
+      "name": "يوم السعودية الخضراء",
+      "sessions": {
+        "low": 3,
+        "up": 3
+      },
+      "occasionId": "green-day"
+    },
+    {
+      "id": "occasions-04",
+      "domainId": "occasions",
+      "name": "يوم العلم",
+      "sessions": {
+        "low": 3,
+        "up": 3
+      },
+      "occasionId": "flag-day"
+    },
+    {
+      "id": "occasions-05",
+      "domainId": "occasions",
+      "name": "يوم الصحة العالمي",
+      "sessions": {
+        "low": 2,
+        "up": 2
+      },
+      "occasionId": "health-day"
+    },
+    {
+      "id": "occasions-06",
+      "domainId": "occasions",
+      "name": "اليوم العالمي للتعليم",
+      "sessions": {
+        "low": 2,
+        "up": 2
+      },
+      "occasionId": "education-day"
+    },
+    {
+      "id": "occasions-07",
+      "domainId": "occasions",
+      "name": "يوم اللغة العربية العالمي",
+      "sessions": {
+        "low": 2,
+        "up": 2
+      },
+      "occasionId": "arabic-day"
+    },
+    {
+      "id": "occasions-08",
+      "domainId": "occasions",
+      "name": "يوم التسامح العالمي",
+      "sessions": {
+        "low": 2,
+        "up": 2
+      },
+      "occasionId": "tolerance-day"
+    },
+    {
+      "id": "occasions-09",
+      "domainId": "occasions",
+      "name": "اليوم العالمي للطفل",
+      "sessions": {
+        "low": 2,
+        "up": 2
+      },
+      "occasionId": "children-day"
+    },
+    {
+      "id": "occasions-10",
+      "domainId": "occasions",
+      "name": "اليوم العالمي لذوي الاعاقة",
+      "sessions": {
+        "low": 2,
+        "up": 2
+      },
+      "occasionId": "disability-day"
+    },
+    {
+      "id": "occasions-11",
+      "domainId": "occasions",
+      "name": "يوم المعلم العالمي",
+      "sessions": {
+        "low": 2,
+        "up": 2
+      },
+      "occasionId": "teachers-day"
+    },
+    {
+      "id": "occasions-12",
+      "domainId": "occasions",
+      "name": "اليوم الدولي للأسرة",
+      "sessions": {
+        "low": 2,
+        "up": 2
+      },
+      "occasionId": "family-day"
+    },
+    {
+      "id": "periods-01",
+      "domainId": "periods",
+      "name": "رحلة نجاح",
+      "sessions": {
+        "low": 11,
+        "up": 11
+      }
+    },
+    {
+      "id": "periods-02",
+      "domainId": "periods",
+      "name": "صحتي مسؤوليتي",
+      "sessions": {
+        "low": 11,
+        "up": 11
+      }
+    },
+    {
+      "id": "periods-03",
+      "domainId": "periods",
+      "name": "سفراء الاستدامة والوعي البيئي",
+      "sessions": {
+        "low": 11,
+        "up": 11
+      }
+    },
+    {
+      "id": "periods-04",
+      "domainId": "periods",
+      "name": "مهارات المستقبل",
+      "sessions": {
+        "low": 11,
+        "up": 11
+      }
+    },
+    {
+      "id": "periods-05",
+      "domainId": "periods",
+      "name": "كن واعيًا",
+      "sessions": {
+        "low": 11,
+        "up": 11
+      }
+    },
+    {
+      "id": "periods-06",
+      "domainId": "periods",
+      "name": "النادي الثقافي",
+      "sessions": {
+        "low": 11,
+        "up": 11
+      }
+    },
+    {
+      "id": "periods-07",
+      "domainId": "periods",
+      "name": "الإرث والأمجاد",
+      "sessions": {
+        "low": 11,
+        "up": 11
+      }
+    },
+    {
+      "id": "periods-08",
+      "domainId": "periods",
+      "name": "صانع الأثر",
+      "sessions": {
+        "low": 6,
+        "up": 6
+      }
+    },
+    {
+      "id": "periods-09",
+      "domainId": "periods",
+      "name": "القيم",
+      "sessions": {
+        "low": 20,
+        "up": 20
+      }
+    },
+    {
+      "id": "periods-10",
+      "domainId": "periods",
+      "name": "النسك",
+      "sessions": {
+        "low": 4,
+        "up": 4
+      }
+    }
+  ]
+}
