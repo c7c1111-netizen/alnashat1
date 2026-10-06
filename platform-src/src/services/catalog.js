@@ -24,19 +24,22 @@ export async function loadCatalog(calendarId) {
   ]);
   const calEntry = calIndex.calendars.find((c) => c.id === calendarId) || calIndex.calendars.find((c) => c.id === calIndex.default);
   const calendar = await getJSON(`data/${calEntry.file}`);
-  return buildCatalog({ domains: domains.domains, programs: programs.programs, stages: stages.stages, calendar, calendars: calIndex.calendars, seed });
+  return buildCatalog({ domains: domains.domains, programs: programs.programs, stages: stages.stages, schoolTypes: stages.schoolTypes, calendar, calendars: calIndex.calendars, seed });
 }
 
 /** يبني كائن الفهرس مع دوال مساعدة — يُستخدم أيضًا في الاختبارات */
-export function buildCatalog({ domains, programs, stages, calendar, calendars = [], seed = null }) {
+const DEFAULT_TYPES = [{ id: 'primary', name: 'الابتدائية', label: 'مدرسة ابتدائية', stages: ['low', 'up'], periodsPerDay: 7 }];
+
+export function buildCatalog({ domains, programs, stages, schoolTypes = DEFAULT_TYPES, calendar, calendars = [], seed = null }) {
   const domainById = Object.fromEntries(domains.map((d) => [d.id, d]));
   const programById = Object.fromEntries(programs.map((p) => [p.id, p]));
   const gradeById = {};
   stages.forEach((s) => s.grades.forEach((g) => { gradeById[g.id] = { ...g, stageId: s.id }; }));
   const stageById = Object.fromEntries(stages.map((s) => [s.id, s]));
+  const schoolTypeById = Object.fromEntries(schoolTypes.map((t) => [t.id, t]));
   return {
-    domains, programs, stages, calendar, calendars, seed,
-    domainById, programById, gradeById, stageById,
+    domains, programs, stages, schoolTypes, calendar, calendars, seed,
+    domainById, programById, gradeById, stageById, schoolTypeById,
   };
 }
 
@@ -128,8 +131,35 @@ export function resolveOccasions(catalog, semesterId = 1) {
   return out.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export function defaultActivityDays(catalog, settings, stage) {
-  const fromSettings = settings?.activityDays?.[stage];
-  const fromCal = catalog.calendar.activityDaysDefault?.[stage];
-  return [...(fromSettings || fromCal || ['mon', 'wed'])].filter((d) => DAY_ORDER.includes(d));
+/** أيام النشاط الافتراضية: إعداد الصف ← إعداد المرحلة ← افتراضي الصف ← افتراضي المرحلة */
+export function defaultActivityDays(catalog, settings, stage, gradeId = null) {
+  const g = gradeId ? catalog.gradeById[gradeId] : null;
+  const list = (gradeId && settings?.activityDaysByGrade?.[gradeId])
+    || settings?.activityDays?.[stage]
+    || g?.activityDays
+    || catalog.stageById[stage]?.activityDays
+    || catalog.calendar.activityDaysDefault?.[stage]
+    || ['mon', 'wed'];
+  return [...list].filter((d) => DAY_ORDER.includes(d));
 }
+
+/** مراحل المدرسة الحالية حسب أنواعها (ابتدائية/متوسطة/ثانوية) */
+export function schoolStages(catalog, school) {
+  const types = school?.types?.length ? school.types : ['primary'];
+  const ids = types.flatMap((t) => catalog.schoolTypeById[t]?.stages || []);
+  return catalog.stages.filter((s) => ids.includes(s.id));
+}
+
+export function schoolGrades(catalog, school) {
+  return schoolStages(catalog, school).flatMap((s) => s.grades.map((g) => ({ ...g, stageId: s.id })));
+}
+
+/** اسم المرحلة للعرض في ملف الخطة: «الابتدائية — الصفوف العليا» أو «المتوسطة» */
+export function stageDisplayName(catalog, stageId) {
+  const st = catalog.stageById[stageId];
+  if (!st) return '';
+  const t = catalog.schoolTypeById[st.type];
+  return t && t.stages.length > 1 ? `${t.name} — ${st.name}` : (t?.name || st.name);
+}
+
+export const SECTION_LETTERS = ['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز', 'ح', 'ط', 'ي'];

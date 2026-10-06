@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../state/store.jsx';
 import { relativeTime } from '../utils/arabic.js';
+import { SchoolsModal, schoolTypesLabel } from './school.jsx';
 
 export const NAV = [
   { href: '#/', icon: '🏠', label: 'الرئيسية', match: (p) => p.length === 0 },
@@ -29,7 +30,8 @@ export function SaveIndicator() {
 }
 
 export function Shell({ route, children }) {
-  const { state } = useApp();
+  const { state, catalog, registry } = useApp();
+  const [schools, setSchools] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
     const on = () => setOnline(true), off = () => setOnline(false);
@@ -44,9 +46,13 @@ export function Shell({ route, children }) {
           <span className="brand-mark" aria-hidden="true">ن</span>
           <span className="brand-text">
             <strong>منصة النشاط الطلابي</strong>
-            <small>{state.school.name || 'إعداد المدرسة'}</small>
+            <small>{catalog.calendar.label}</small>
           </span>
         </a>
+        <button type="button" className="school-switch" onClick={() => setSchools(true)} aria-label="تبديل المدرسة أو إضافة مدرسة">
+          <span>🏫 {state.school.name || 'مدرسة بدون اسم'}</span>
+          <small>{schoolTypesLabel(catalog, state.school.types)}{registry?.schools.length > 1 ? ` · ${registry.schools.length} مدارس` : ''} ▾</small>
+        </button>
         <div className="topbar-end">
           {!online && <span className="badge warn">بدون إنترنت — كل شي يشتغل</span>}
           <SaveIndicator />
@@ -60,6 +66,7 @@ export function Shell({ route, children }) {
         ))}
       </nav>
       <main id="main" className="main" tabIndex={-1}>{children}</main>
+      {schools && <SchoolsModal onClose={() => setSchools(false)} />}
       <nav className="tabbar" aria-label="التنقل السريع">
         {MOBILE.map((href) => {
           const n = href === '#/more' ? { href, icon: '☰', label: 'المزيد', match: (p) => ['more', 'teachers', 'evidence', 'reports', 'export', 'settings'].includes(p[0]) } : NAV.find((x) => x.href === href);

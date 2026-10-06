@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../state/store.jsx';
 import { Field, Chips, Button, Badge, Card, useToast } from '../../components/ui.jsx';
-import { classLabel, defaultActivityDays, semesterOf } from '../../services/catalog.js';
+import { classLabel, defaultActivityDays, semesterOf, schoolStages } from '../../services/catalog.js';
 import { teacherQuota, semesterSubjectSessions } from '../../services/quota.js';
 import { arNum, sessionsLabel } from '../../utils/arabic.js';
 import { cleanLine, cleanInt } from '../../utils/sanitize.js';
@@ -12,18 +12,21 @@ export default function StepBasics({ plan, patch }) {
   const toast = useToast();
   const cls = state.classes.find((c) => c.id === plan.classId);
   const stageOf = (c) => catalog.gradeById[c?.gradeId]?.stageId;
-  const [stage, setStage] = useState(stageOf(cls) || null);
+  const stages = schoolStages(catalog, state.school);
+  const [stage, setStage] = useState(stageOf(cls) || (stages.length === 1 ? stages[0].id : null));
   const teacher = state.teachers.find((t) => t.id === plan.teacherId);
   const [newName, setNewName] = useState('');
   const q = teacher ? teacherQuota(state, catalog, teacher.id) : null;
   const sem = semesterOf(catalog, plan.semester);
-  const classes = state.classes.filter((c) => !stage || stageOf(c) === stage);
+  const classes = state.classes
+    .filter((c) => stages.some((s) => s.id === stageOf(c)) && (!stage || stageOf(c) === stage))
+    .sort((a, b) => Number(a.gradeId.slice(1)) - Number(b.gradeId.slice(1)) || a.section.localeCompare(b.section, 'ar'));
 
   const pickClass = (c) => {
     const st = stageOf(c);
     const p = { classId: c.id };
     if (!plan.teacherId && c.homeroomTeacherId) p.teacherId = c.homeroomTeacherId;
-    if (!plan.days?.length || stageOf(cls) !== st) p.days = defaultActivityDays(catalog, state.settings, st);
+    if (!plan.days?.length || cls?.gradeId !== c.gradeId) { p.days = defaultActivityDays(catalog, state.settings, st, c.gradeId); p.doubleDays = []; }
     // البرامج غير المطروحة للمرحلة الجديدة تنشال تلقائيًا
     p.programs = (plan.programs || []).filter((it) => (catalog.programById[it.programId]?.sessions?.[st] || 0) > 0 || it.sessions > 0);
     if (p.programs.length !== (plan.programs || []).length) toast('شلنا برامج غير مطروحة للمرحلة الجديدة', 'info');
@@ -44,7 +47,7 @@ export default function StepBasics({ plan, patch }) {
   return (
     <div className="step-content">
       <Field label="المرحلة الدراسية">
-        <Chips label="المرحلة" value={stage} onChange={setStage} options={catalog.stages.map((s) => ({ value: s.id, label: s.name }))} />
+        <Chips label="المرحلة" value={stage} onChange={setStage} options={stages.map((s) => ({ value: s.id, label: s.name }))} />
       </Field>
       <Field label="الصف والفصل" required hint="عند اختيار الصف يتحدد المستوى والبرامج المناسبة تلقائيًا">
         <div className="class-grid" role="radiogroup" aria-label="الصف">
@@ -54,7 +57,7 @@ export default function StepBasics({ plan, patch }) {
               <small>{state.teachers.find((t) => t.id === c.homeroomTeacherId)?.name || ''}</small>
             </button>
           ))}
-          {!classes.length && <p className="muted">ما فيه فصول — أضفها من <a href="#/settings">الإعدادات</a>.</p>}
+          {!classes.length && <p className="muted">ما فيه فصول لهذي المرحلة — <a href="#/setup">أضف الفصول بسرعة</a>.</p>}
         </div>
       </Field>
       {cls && <p className="muted small">المستوى: <Badge tone="info">{catalog.stageById[stageOf(cls)]?.name}</Badge></p>}
@@ -66,7 +69,7 @@ export default function StepBasics({ plan, patch }) {
             {state.teachers.map((t) => <option key={t.id} value={t.id}>{t.name}{t.subject ? ` — ${t.subject}` : ''}</option>)}
           </select>
         </Field>
-        <Field label="معلم غير موجود في القائمة؟">
+        <Field label="معلم غير موجود في القائمة؟" hint={<>أو <a href="#/teachers">أضف عدة معلمين دفعة وحدة</a></>}>
           <div className="inline-form">
             <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="اكتب اسمه" onKeyDown={(e) => e.key === 'Enter' && addTeacher()} />
             <Button onClick={addTeacher} disabled={!newName.trim()}>إضافة</Button>

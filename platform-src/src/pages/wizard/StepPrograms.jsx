@@ -98,7 +98,7 @@ export default function StepPrograms({ plan, patch, go }) {
               </div>
               <h4>{p.name}</h4>
               <div className="program-card-meta">
-                <span>{['low', 'up'].filter((s) => programSessions(catalog, state.settings, p.id, s)).map((s) => catalog.stageById[s].name).join(' و') || '—'}</span>
+                <span>{catalog.stages.filter((s) => programSessions(catalog, state.settings, p.id, s.id)).map((s) => s.name).join('، ') || '—'}</span>
                 {o && <span className="occ">📅 {o.name} · {gregShort(o.date)}</span>}
                 {p.occasionId && !o && <span className="muted">المناسبة خارج هذا الفصل</span>}
               </div>

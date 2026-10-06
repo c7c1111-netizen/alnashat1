@@ -22,7 +22,7 @@ export default function Dashboard() {
           <p className="eyebrow">{state.school.name || 'اسم المدرسة'} · {catalog.calendar.label} · {sem.name}</p>
           <h1>منصة النشاط الطلابي</h1>
           <p className="hero-hello">مرحبًا بك{state.school.leaderName ? `، ${state.school.leaderName}` : ''} 👋</p>
-          {!state.school.name && <p className="hero-hint">ابدأ بـ<a href="#/settings">إعدادات المدرسة</a> (الاسم، رائد النشاط، المعلمون) — مرة وحدة بس.</p>}
+          {(!state.school.name || !state.classes.length || !state.teachers.length) && <p className="hero-hint">ابدأ بـ<a href="#/setup">تجهيز المدرسة</a> (الاسم، المرحلة، الفصول، المعلمون) — مرة وحدة بس.</p>}
         </div>
         <div className="hero-actions">
           <LinkButton href="#/plans/new" variant="primary" icon="+">إنشاء خطة جديدة</LinkButton>

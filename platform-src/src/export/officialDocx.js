@@ -184,16 +184,16 @@ function fillProgramsTable(tbl, byDomain, stageLabel) {
   });
 }
 
-function fillPrograms(doc, model, stageNames) {
+function fillPrograms(doc, model, stageLabels) {
   const tbl = all(doc, 'tbl').find(isProgramsTable);
   if (!tbl) return;
-  const stages = ['low', 'up'].filter((st) => Object.values(model.programsByStage[st]).some((l) => l.length));
-  const prefix = model.school?.stageName || 'الابتدائية';
+  const stages = model.stagesUsed || [];
   if (stages.length < 2) {
     const st = stages[0];
-    fillProgramsTable(tbl, st ? model.programsByStage[st] : {}, st ? `${prefix} — ${stageNames[st]}` : '');
+    fillProgramsTable(tbl, st ? model.programsByStage[st] : {}, st ? stageLabels[st] : '');
     return;
   }
+  // أكثر من مرحلة: نكرّر صفحة البرامج (نفس القسم بالضبط) لكل مرحلة إضافية
   const body = all(doc, 'body')[0];
   const list = [...body.childNodes].filter((n) => n.nodeType === 1);
   let top = tbl; while (top.parentNode !== body) top = top.parentNode;
@@ -201,16 +201,50 @@ function fillPrograms(doc, model, stageNames) {
   const isSect = (e) => e.localName === 'p' && e.getElementsByTagNameNS(WNS, 'sectPr').length;
   let s = idx; while (s > 0 && !isSect(list[s - 1])) s--;
   let e = idx; while (e < list.length - 1 && !isSect(list[e])) e++;
-  const copy = list.slice(s, e + 1).map((n) => { const c = n.cloneNode(true); scrubIds(c); return c; });
-  const ref = list[e].nextSibling;
-  copy.forEach((n) => body.insertBefore(n, ref));
-  const copyTbl = copy.flatMap((n) => (n.localName === 'tbl' ? [n] : all(n, 'tbl'))).find(isProgramsTable);
-  fillProgramsTable(tbl, model.programsByStage.low, `${prefix} — ${stageNames.low}`);
-  if (copyTbl) fillProgramsTable(copyTbl, model.programsByStage.up, `${prefix} — ${stageNames.up}`);
+  const original = list.slice(s, e + 1);
+  let ref = list[e].nextSibling;
+  stages.slice(1).forEach((st) => {
+    const copy = original.map((n) => { const c = n.cloneNode(true); scrubIds(c); return c; });
+    copy.forEach((n) => body.insertBefore(n, ref));
+    const copyTbl = copy.flatMap((n) => (n.localName === 'tbl' ? [n] : all(n, 'tbl'))).find(isProgramsTable);
+    if (copyTbl) fillProgramsTable(copyTbl, model.programsByStage[st], stageLabels[st]);
+  });
+  fillProgramsTable(tbl, model.programsByStage[stages[0]], stageLabels[stages[0]]);
+}
+
+/** الغلاف: اسم المدرسة، ومدير المدرسة، ورائد النشاط، والعام الميلادي — إذا كانت معبّأة في الإعدادات */
+function fillCover(doc, model) {
+  const school = model.school || {};
+  const setPara = (p, text) => {
+    const ts = all(p, 't');
+    if (!ts.length) return;
+    ts[0].textContent = text;
+    ts[0].setAttributeNS(XMLNS_XML, 'xml:space', 'preserve');
+    ts.slice(1).forEach((t) => { t.textContent = ''; });
+  };
+  const body = all(doc, 'body')[0];
+  const paras = [...body.childNodes].filter((n) => n.nodeType === 1).slice(0, 40).filter((n) => n.localName === 'p');
+  // اسم المدرسة: الفقرة اللي بعد «الإدارة العامة للتعليم…»
+  const ai = paras.findIndex((p) => kids(p, 'r').map((r) => text(r)).join('').includes('الإدارة العامة للتعليم'));
+  if (ai >= 0 && school.name && paras[ai + 1] && kids(paras[ai + 1], 'r').some((r) => text(r))) setPara(paras[ai + 1], school.name);
+  // العام الميلادي (مثل 2026 – 2025)
+  if (model.gregorianLabel) {
+    paras.forEach((p) => {
+      const t = kids(p, 'r').map((r) => text(r)).join('').trim();
+      if (/^\d{4}\s*[–-]\s*\d{4}$/.test(t)) setPara(p, model.gregorianLabel);
+    });
+  }
+  // المدير ورائد النشاط داخل مربعات النص
+  all(doc, 'txbxContent').forEach((tb) => {
+    const ps = kids(tb, 'p');
+    const head = ps[0] ? text(ps[0]) : '';
+    if (head === 'مدير المدرسة' && school.directorName && ps[1]) setPara(ps[1], school.directorName);
+    if (head === 'رائد النشاط الطلابي' && school.leaderName && ps[1]) setPara(ps[1], school.leaderName);
+  });
 }
 
 /** يرجّع Blob لملف Word معبّأ */
-export async function fillOfficialTemplate(templateBytes, model, { stageNames }) {
+export async function fillOfficialTemplate(templateBytes, model, { stageLabels }) {
   const zip = await JSZip.loadAsync(templateBytes);
   const file = zip.file('word/document.xml');
   if (!file) throw new Error('ملف القالب لا يحتوي على مستند Word صالح');
@@ -220,7 +254,8 @@ export async function fillOfficialTemplate(templateBytes, model, { stageNames })
   if (model.periods >= 7) addSeventhPeriodHeader(doc);
   fillWeeks(doc, model);
   fillAssign(doc, model);
-  fillPrograms(doc, model, stageNames);
+  fillPrograms(doc, model, stageLabels);
+  fillCover(doc, model);
   let out = new XMLSerializer().serializeToString(doc);
   if (!/^<\?xml/.test(out)) out = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n${out}`;
   zip.file('word/document.xml', out);

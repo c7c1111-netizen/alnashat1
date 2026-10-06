@@ -1,47 +1,26 @@
 {
- "version": 1,
+ "version": 2,
+ "schoolTypes": [
+  {"id": "primary", "name": "الابتدائية", "label": "مدرسة ابتدائية", "stages": ["low", "up"], "periodsPerDay": 7},
+  {"id": "middle", "name": "المتوسطة", "label": "مدرسة متوسطة", "stages": ["mid"], "periodsPerDay": 7},
+  {"id": "secondary", "name": "الثانوية", "label": "مدرسة ثانوية", "stages": ["high"], "periodsPerDay": 7}
+ ],
  "stages": [
-  {
-   "id": "low",
-   "name": "الصفوف الأولية",
-   "grades": [
-    {
-     "id": "g1",
-     "name": "الأول الابتدائي",
-     "short": "الأول"
-    },
-    {
-     "id": "g2",
-     "name": "الثاني الابتدائي",
-     "short": "الثاني"
-    },
-    {
-     "id": "g3",
-     "name": "الثالث الابتدائي",
-     "short": "الثالث"
-    }
-   ]
-  },
-  {
-   "id": "up",
-   "name": "الصفوف العليا",
-   "grades": [
-    {
-     "id": "g4",
-     "name": "الرابع الابتدائي",
-     "short": "الرابع"
-    },
-    {
-     "id": "g5",
-     "name": "الخامس الابتدائي",
-     "short": "الخامس"
-    },
-    {
-     "id": "g6",
-     "name": "السادس الابتدائي",
-     "short": "السادس"
-    }
-   ]
-  }
+  {"id": "low", "type": "primary", "name": "الصفوف الأولية", "activityDays": ["mon", "wed"], "grades": [
+   {"id": "g1", "name": "الأول الابتدائي", "short": "الأول"},
+   {"id": "g2", "name": "الثاني الابتدائي", "short": "الثاني"},
+   {"id": "g3", "name": "الثالث الابتدائي", "short": "الثالث"}]},
+  {"id": "up", "type": "primary", "name": "الصفوف العليا", "activityDays": ["mon", "wed"], "grades": [
+   {"id": "g4", "name": "الرابع الابتدائي", "short": "الرابع"},
+   {"id": "g5", "name": "الخامس الابتدائي", "short": "الخامس"},
+   {"id": "g6", "name": "السادس الابتدائي", "short": "السادس"}]},
+  {"id": "mid", "type": "middle", "name": "المرحلة المتوسطة", "activityDays": ["mon"], "grades": [
+   {"id": "g7", "name": "الأول المتوسط", "short": "أول متوسط"},
+   {"id": "g8", "name": "الثاني المتوسط", "short": "ثاني متوسط"},
+   {"id": "g9", "name": "الثالث المتوسط", "short": "ثالث متوسط"}]},
+  {"id": "high", "type": "secondary", "name": "المرحلة الثانوية", "activityDays": ["mon", "wed"], "grades": [
+   {"id": "g10", "name": "الأول الثانوي", "short": "أول ثانوي", "activityDays": ["mon", "tue", "wed"]},
+   {"id": "g11", "name": "الثاني الثانوي", "short": "ثاني ثانوي"},
+   {"id": "g12", "name": "الثالث الثانوي", "short": "ثالث ثانوي"}]}
  ]
 }

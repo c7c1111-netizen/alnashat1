@@ -15,11 +15,13 @@ import { assistant } from '../src/services/assistant.js';
 import { buildReport, REPORTS } from '../src/services/reports.js';
 import { programRows } from '../src/services/insights.js';
 import { safeUrl, safeFileName, cleanInt } from '../src/utils/sanitize.js';
+import { parseTeacherLines } from '../src/utils/teachers.js';
+import { defaultActivityDays, schoolStages, stageDisplayName } from '../src/services/catalog.js';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const J = (p) => JSON.parse(fs.readFileSync(path.join(root, 'public/data', p), 'utf8'));
 const catalog = buildCatalog({
-  domains: J('domains.json').domains, programs: J('programs.json').programs, stages: J('stages.json').stages,
+  domains: J('domains.json').domains, programs: J('programs.json').programs, stages: J('stages.json').stages, schoolTypes: J('stages.json').schoolTypes,
   calendar: J('calendars/1448-1449.json'), seed: J('school-seed.json'),
 });
 
@@ -231,4 +233,47 @@ test('تنظيف المدخلات', () => {
   assert.equal(safeUrl('youtube.com/watch?v=1'), 'https://youtube.com/watch?v=1');
   assert.equal(safeFileName('خطة/الرابع:أ?.docx'), 'خطة-الرابع-أ-.docx');
   assert.equal(cleanInt('١٢'), 12);
+});
+
+test('المراحل: المتوسط والثانوي بأعداد حصصها وأيام نشاطها', () => {
+  const st = initialState(null, '1448-1449', { types: ['middle', 'secondary'] });
+  assert.deepEqual(schoolStages(catalog, st.school).map((s) => s.id), ['mid', 'high']);
+  assert.equal(programSessions(catalog, st.settings, progId('التطوع الطلابي'), 'mid'), 5);
+  assert.equal(programSessions(catalog, st.settings, progId('التطوع الطلابي'), 'high'), 6);
+  assert.equal(programSessions(catalog, st.settings, progId('مخيمي التقني'), 'mid'), 10);
+  assert.equal(programSessions(catalog, st.settings, progId('مخيمي التقني'), 'high'), null);
+  assert.equal(programSessions(catalog, st.settings, progId('خيمتي الجميلة'), 'mid'), null);
+  assert.deepEqual(defaultActivityDays(catalog, st.settings, 'mid', 'g8'), ['mon']);
+  assert.deepEqual(defaultActivityDays(catalog, st.settings, 'high', 'g10'), ['mon', 'tue', 'wed']);
+  assert.deepEqual(defaultActivityDays(catalog, st.settings, 'high', 'g11'), ['mon', 'wed']);
+  st.settings.activityDaysByGrade = { g11: ['sun'] };
+  assert.deepEqual(defaultActivityDays(catalog, st.settings, 'high', 'g11'), ['sun']);
+  assert.equal(stageDisplayName(catalog, 'up'), 'الابتدائية — الصفوف العليا');
+  assert.equal(stageDisplayName(catalog, 'high'), 'الثانوية');
+});
+
+test('خطة ثانوية: أول ثانوي ٣ أيام، والملف يضم المرحلتين', () => {
+  const st = initialState(null, '1448-1449', { types: ['middle', 'secondary'] });
+  st.classes = [{ id: 'g10-أ', gradeId: 'g10', section: 'أ' }, { id: 'g8-أ', gradeId: 'g8', section: 'أ' }];
+  st.teachers = [{ id: 't1', name: 'معلم', weeklyLoad: 20 }, { id: 't2', name: 'معلم٢', weeklyLoad: 20 }];
+  const a = mkPlan(st, { classId: 'g10-أ', teacherId: 't1', periods: { mon: 2, tue: 2, wed: 2 }, programs: [{ programId: progId('سواعد الكشفية') }], createdAt: 1 });
+  const b = mkPlan(st, { classId: 'g8-أ', teacherId: 't2', periods: { mon: 5 }, programs: [{ programId: progId('الملاحة على اليابس') }], createdAt: 2 });
+  st.plans.push(a, b);
+  const sched = scheduleAll(st, catalog);
+  assert.deepEqual(sched[a.id].days, ['mon', 'tue', 'wed']);
+  assert.deepEqual(sched[b.id].days, ['mon']);
+  assert.equal(sched[a.id].programs[0].needed, 6);
+  const errs = allIssues(st, catalog, sched).filter((i) => i.severity === 'error');
+  assert.deepEqual(errs, []);
+  const m = buildMasterModel(st, catalog, { schedules: sched });
+  assert.deepEqual(m.stagesUsed, ['mid', 'high']);
+  assert.equal(m.assign.length, 2);
+});
+
+test('إضافة المعلمين دفعة وحدة من نص ملصوق', () => {
+  const list = parseTeacherLines('محمد أحمد - رياضيات - 18\nسعيد علي، لغتي\nخالد\tعلوم\t٢٠\n\n  ');
+  assert.equal(list.length, 3);
+  assert.deepEqual(list[0], { name: 'محمد أحمد', subject: 'رياضيات', weeklyLoad: 18 });
+  assert.equal(list[1].subject, 'لغتي');
+  assert.equal(list[2].weeklyLoad, 20);
 });

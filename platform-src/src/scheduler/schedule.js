@@ -13,7 +13,8 @@ export function planStage(state, catalog, plan) {
 
 export function planDays(state, catalog, plan) {
   const stage = planStage(state, catalog, plan);
-  const d = Array.isArray(plan.days) && plan.days.length ? plan.days : defaultActivityDays(catalog, state.settings, stage);
+  const cls = state.classes.find((c) => c.id === plan.classId);
+  const d = Array.isArray(plan.days) && plan.days.length ? plan.days : defaultActivityDays(catalog, state.settings, stage, cls?.gradeId);
   return DAY_ORDER.filter((k) => d.includes(k));
 }
 
