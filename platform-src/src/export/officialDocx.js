@@ -116,30 +116,77 @@ function addSeventhPeriodHeader(doc) {
   });
 }
 
+const PERIOD_NAMES = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة'];
+const OCCASIONS_HEAD = /الأيام\s*والمناسبات/;
+
+/** مواقع الخانات على شبكة الجدول (عشان نطابق خانات البيانات مع رأس الحصص مهما اختلف الدمج) */
+function gridCols(tr) {
+  const gb = tr.getElementsByTagNameNS(WNS, 'gridBefore')[0];
+  let g = parseInt(attr(gb, 'val'), 10) || 0;
+  return kids(tr, 'tc').map((tc) => {
+    const pr = kids(tc, 'tcPr')[0];
+    const span = parseInt(attr(pr && kids(pr, 'gridSpan')[0], 'val'), 10) || 1;
+    const c = { tc, start: g, span };
+    g += span;
+    return c;
+  });
+}
+
+/** من صف الرأس: لكل حصة (وعمود المناسبات) رقم الخانة المقابلة في صفوف البيانات */
+function headerMap(headCols, dataCols) {
+  const map = { periods: {}, occasions: -1 };
+  headCols.forEach((h) => {
+    const name = text(h.tc).replace(/\s+/g, ' ');
+    const under = dataCols.map((d, i) => (d.start >= h.start && d.start < h.start + h.span ? i : -1)).filter((i) => i >= 0);
+    if (!under.length) return;
+    const pi = PERIOD_NAMES.indexOf(name);
+    if (pi >= 0) map.periods[pi] = under[under.length - 1];
+    else if (OCCASIONS_HEAD.test(name)) map.occasions = under[under.length - 1];
+  });
+  return map;
+}
+
+const isPeriodHeader = (tr) => kids(tr, 'tc').some((c) => text(c) === 'الأولى');
+
 function fillWeeks(doc, model) {
   const byHijri = {};
   model.weeks.forEach((w) => w.days.forEach((d) => { byHijri[`${d.hijri.d}/${d.hijri.m}`] = d; }));
   let current = null;
+  let head = null; // آخر صف رأس للحصص
+  let map = null;
+  const report = { missingPeriods: new Set() };
   all(doc, 'tr').forEach((tr) => {
+    if (isPeriodHeader(tr)) { head = gridCols(tr); map = null; return; }
     const cells = kids(tr, 'tc');
-    if (cells.length !== 9) return;
-    const li = LABELS.indexOf(text(cells[7]));
-    if (li < 0) return;
-    const dayCell = cells[8];
+    const li = cells.findIndex((c) => LABELS.includes(text(c)));
+    if (li < 1 || li !== cells.length - 2) return;
+    const labelIdx = LABELS.indexOf(text(cells[li]));
+    const dayCell = cells[li + 1];
     const dayTxt = text(dayCell);
     if (dayTxt) {
       all(dayCell, 't').forEach((t) => { t.textContent = t.textContent.replace(/١٤٤٧/g, '١٤٤٨').replace(/1447/g, '1448'); });
       const m = toLatin(dayTxt).match(/(\d{1,2})\s*\/\s*(\d{1,2})/);
       current = m ? byHijri[`${parseInt(m[1], 10)}/${parseInt(m[2], 10)}`] || null : null;
     }
-    if (!current || current.type !== 'study') return;
-    const key = ['program', 'grade', 'teacher'][li];
+    if (!map) {
+      // بدون رأس معروف: الطريقة القديمة (الحصة الأولى قبل خانة التسمية مباشرة)
+      map = head ? headerMap(head, gridCols(tr)) : { periods: Object.fromEntries(Array.from({ length: li }, (_, i) => [i, li - 1 - i])), occasions: -1 };
+    }
+    if (!current) return;
+    // عمود «الأيام والمناسبات»: اسم المناسبة في صف البرنامج
+    if (labelIdx === 0 && map.occasions >= 0 && current.occasions?.length) {
+      setCellText(cells[map.occasions], current.occasions.join('\n'), { sz: current.occasions.length > 1 ? 14 : 16, b: true });
+    }
+    if (current.type !== 'study') return;
+    const key = ['program', 'grade', 'teacher'][labelIdx];
     current.cells.forEach((list, pi) => {
-      if (!list.length || pi > 6) return;
-      const tc = cells[6 - pi]; // الأولى = الخانة ٦ … السادسة = ١، السابعة = ٠
-      if (tc) setCellText(tc, list.map((e) => e[key]).join('\n'), { sz: list.length > 1 ? 14 : 16, b: li === 0 });
+      if (!list.length) return;
+      const ci = map.periods[pi];
+      if (ci == null) { report.missingPeriods.add(pi + 1); return; }
+      setCellText(cells[ci], list.map((e) => e[key]).join('\n'), { sz: list.length > 1 ? 14 : 16, b: labelIdx === 0 });
     });
   });
+  return { missingPeriods: [...report.missingPeriods].sort() };
 }
 
 function fillAssign(doc, model) {
@@ -166,7 +213,7 @@ const isProgramsTable = (t) => { const r = kids(t, 'tr')[0]; return r && /ﻟﻤ
 
 function fillProgramsTable(tbl, byDomain, stageLabel) {
   const rows = kids(tbl, 'tr');
-  if (stageLabel) setCellText(kids(rows[0], 'tc')[0], `المرحلة: ${stageLabel}`, { sz: 28, b: true });
+  if (stageLabel) setCellText(kids(rows[0], 'tc')[0], `المرحلة: ${stageLabel}`, { b: true, keepFont: true, keepScale: true });
   const data = rows.filter((r, i) => i >= 2 && kids(r, 'tc').length === 13);
   const need = Math.max(0, ...Object.keys(DOMAIN_NAME_CELL).map((d) => (byDomain[d] || []).length));
   while (data.length < need) {
@@ -212,39 +259,47 @@ function fillPrograms(doc, model, stageLabels) {
   fillProgramsTable(tbl, model.programsByStage[stages[0]], stageLabels[stages[0]]);
 }
 
-/** الغلاف: اسم المدرسة، ومدير المدرسة، ورائد النشاط، والعام الميلادي — إذا كانت معبّأة في الإعدادات */
-function fillCover(doc, model) {
+/** الغلاف: اسم المدرسة، والمرحلة، ومدير المدرسة، ورائد النشاط، والعام — إذا كانت معبّأة في الإعدادات */
+function fillCover(doc, model, opts = {}) {
   const school = model.school || {};
-  const setPara = (p, text) => {
+  const setPara = (p, value) => {
     const ts = all(p, 't');
     if (!ts.length) return;
-    ts[0].textContent = text;
+    ts[0].textContent = value;
     ts[0].setAttributeNS(XMLNS_XML, 'xml:space', 'preserve');
     ts.slice(1).forEach((t) => { t.textContent = ''; });
   };
+  const runText = (p) => kids(p, 'r').map((r) => text(r)).join('').trim();
   const body = all(doc, 'body')[0];
   const paras = [...body.childNodes].filter((n) => n.nodeType === 1).slice(0, 40).filter((n) => n.localName === 'p');
-  // اسم المدرسة: الفقرة اللي بعد «الإدارة العامة للتعليم…»
-  const ai = paras.findIndex((p) => kids(p, 'r').map((r) => text(r)).join('').includes('الإدارة العامة للتعليم'));
-  if (ai >= 0 && school.name && paras[ai + 1] && kids(paras[ai + 1], 'r').some((r) => text(r))) setPara(paras[ai + 1], school.name);
-  // العام الميلادي (مثل 2026 – 2025)
-  if (model.gregorianLabel) {
-    paras.forEach((p) => {
-      const t = kids(p, 'r').map((r) => text(r)).join('').trim();
-      if (/^\d{4}\s*[–-]\s*\d{4}$/.test(t)) setPara(p, model.gregorianLabel);
-    });
+  const name = cleanText(school.name || '', 120).trim();
+  let schoolDone = false;
+  paras.forEach((p) => {
+    const t = runText(p);
+    // القالب الجديد: «المدرسة ......» و«(المرحلة الدراسية ......)»
+    if (/^المدرسة\s*[.…]{3,}/.test(t)) { if (name) setPara(p, `المدرسة: ${name}`); schoolDone = true; }
+    else if (/^\(?\s*المرحلة الدراسية\s*[.…]{3,}\s*\)?$/.test(t) && opts.schoolTypeLabel) setPara(p, `(المرحلة الدراسية: ${opts.schoolTypeLabel})`);
+    // العام الميلادي (مثل 2026 – 2025)
+    else if (model.gregorianLabel && /^\d{4}\s*[–-]\s*\d{4}$/.test(t)) setPara(p, model.gregorianLabel);
+  });
+  // القالب القديم: اسم المدرسة في الفقرة اللي بعد «الإدارة العامة للتعليم…»
+  if (!schoolDone && name) {
+    const ai = paras.findIndex((p) => runText(p).includes('الإدارة العامة للتعليم'));
+    if (ai >= 0 && paras[ai + 1] && kids(paras[ai + 1], 'r').some((r) => text(r))) setPara(paras[ai + 1], name);
   }
-  // المدير ورائد النشاط داخل مربعات النص
+  // المدير ورائد النشاط داخل مربعات النص (اللي ما له اسم يبقى خطه المنقّط)
+  const director = cleanText(school.directorName || '', 80).trim();
+  const leader = cleanText(school.leaderName || '', 80).trim();
   all(doc, 'txbxContent').forEach((tb) => {
     const ps = kids(tb, 'p');
-    const head = ps[0] ? text(ps[0]) : '';
-    if (head === 'مدير المدرسة' && school.directorName && ps[1]) setPara(ps[1], school.directorName);
-    if (head === 'رائد النشاط الطلابي' && school.leaderName && ps[1]) setPara(ps[1], school.leaderName);
+    const head = ps[0] ? text(ps[0]).replace(/\s+/g, ' ') : '';
+    if (/^مدير(\/ة)? المدرسة$/.test(head) && director && ps[1]) setPara(ps[1], director);
+    if (/^رائد(\/ة)? النشاط الطلابي$/.test(head) && leader && ps[1]) setPara(ps[1], leader);
   });
 }
 
 /** يرجّع Blob لملف Word معبّأ */
-export async function fillOfficialTemplate(templateBytes, model, { stageLabels }) {
+export async function fillOfficialTemplate(templateBytes, model, { stageLabels, schoolTypeLabel = '' }) {
   const zip = await JSZip.loadAsync(templateBytes);
   const file = zip.file('word/document.xml');
   if (!file) throw new Error('ملف القالب لا يحتوي على مستند Word صالح');
@@ -252,14 +307,16 @@ export async function fillOfficialTemplate(templateBytes, model, { stageLabels }
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
   if (doc.getElementsByTagName('parsererror').length) throw new Error('تعذر قراءة القالب');
   if (model.periods >= 7) addSeventhPeriodHeader(doc);
-  fillWeeks(doc, model);
+  const weeksReport = fillWeeks(doc, model);
   fillAssign(doc, model);
   fillPrograms(doc, model, stageLabels);
-  fillCover(doc, model);
+  fillCover(doc, model, { schoolTypeLabel });
   let out = new XMLSerializer().serializeToString(doc);
   if (!/^<\?xml/.test(out)) out = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n${out}`;
   zip.file('word/document.xml', out);
-  return zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  blob.report = weeksReport;
+  return blob;
 }
 
 /** تحقق سريع إن الملف المرفوع قالب مناسب */

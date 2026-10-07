@@ -85,15 +85,19 @@ export default function OfficialPrintView({ model, calendarLabel, stageLabels })
         <Page key={`w${wi}`} model={model} calendarLabel={calendarLabel}>
           <div className="op-weekhead"><span className="k">الأسبوع</span><span className="n">{w.n ? arNum(w.label) : '—'}</span><span className="bar" /></div>
           <table className="op-tbl op-week"><tbody>
-            <tr><th colSpan={P + 2} className="op-hdr">الحصص الدراسية</th></tr>
-            <tr><th colSpan={2}>اليوم / الحصة</th>{PERIOD_NAMES.slice(0, P).map((p) => <th key={p}>{p}</th>)}</tr>
+            <tr><th colSpan={P + 4} className="op-hdr">الحصص الدراسية</th></tr>
+            <tr><th colSpan={2}>اليوم / الصف</th>{PERIOD_NAMES.slice(0, P).map((p) => <th key={p}>{p}</th>)}<th>الأيام والمناسبات</th><th>المسابقات</th></tr>
             {w.days.map((d, di) => ['البرنامج', 'الصف', 'اسم المعلم'].map((lbl, ri) => (
               <tr key={`${di}${ri}`}>
                 {ri === 0 && <td rowSpan={3} className="op-day">{DAY_NAMES[d.day]}<br />{hijriShort(d.hijri)}</td>}
                 <td className="op-lbl">{lbl}</td>
-                {w.type !== 'study' ? (di === 0 && ri === 0 ? <td colSpan={P} rowSpan={w.days.length * 3} className={`op-banner ${w.type}`}>{w.name}</td> : null)
-                  : d.type !== 'study' ? (ri === 0 ? <td colSpan={P} rowSpan={3} className="op-banner holiday">{d.note}</td> : null)
-                    : d.cells.map((c, ci) => <td key={ci}>{c.map((e, k) => <div key={k}>{e[['program', 'grade', 'teacher'][ri]]}</div>)}</td>)}
+                {w.type !== 'study' ? (di === 0 && ri === 0 ? <td colSpan={P + 2} rowSpan={w.days.length * 3} className={`op-banner ${w.type}`}>{w.name}</td> : null)
+                  : d.type !== 'study' ? (ri === 0 ? <td colSpan={P + 2} rowSpan={3} className="op-banner holiday">{d.note}</td> : null)
+                    : <>
+                      {d.cells.map((c, ci) => <td key={ci}>{c.map((e, k) => <div key={k}>{e[['program', 'grade', 'teacher'][ri]]}</div>)}</td>)}
+                      {ri === 0 && <td rowSpan={3} className="op-occ">{(d.occasions || []).map((o) => <div key={o}>{o}</div>)}</td>}
+                      {ri === 0 && <td rowSpan={3} />}
+                    </>}
               </tr>
             )))}
           </tbody></table>

@@ -9,6 +9,7 @@ import { downloadBlob, downloadJSON, printElement, elementToPng, fetchBytes } fr
 import { createBackup } from '../storage/backup.js';
 import { storage } from '../storage/db.js';
 import { stageDisplayName } from '../services/catalog.js';
+import { schoolTypesLabel } from '../components/school.jsx';
 import { arNum, todayISO } from '../utils/arabic.js';
 
 /** قالب Word خاص بكل مدرسة (أو القالب الرسمي) */
@@ -37,9 +38,11 @@ export default function ExportCenter() {
     setBusy('word');
     try {
       const { fillOfficialTemplate } = await import('../export/officialDocx.js');
-      const blob = await fillOfficialTemplate(await templateBytes(state.school.id), model, { stageLabels });
+      const blob = await fillOfficialTemplate(await templateBytes(state.school.id), model, { stageLabels, schoolTypeLabel: schoolTypesLabel(catalog, state.school.types) });
       downloadBlob(blob, `${base}.docx`);
-      toast('تم تجهيز ملف Word من القالب الرسمي ✓');
+      const miss = blob.report?.missingPeriods || [];
+      if (miss.length) toast(`تم تجهيز الملف — تنبيه: القالب ما فيه عمود للحصة ${miss.map(arNum).join('، ')}، فبرامجها ما ظهرت في الجداول الأسبوعية. انقلها لحصة من الأولى إلى السادسة.`, 'info', 9000);
+      else toast('تم تجهيز ملف Word من القالب الرسمي ✓');
     } catch (e) { console.error(e); toast(e.message || 'تعذر إنشاء ملف Word', 'error'); }
     setBusy('');
   };

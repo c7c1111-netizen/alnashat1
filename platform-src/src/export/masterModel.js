@@ -1,5 +1,5 @@
 // نموذج «ملف خطة برامج النشاط الطلابي» الموحّد — نفس البيانات تغذّي Word والـ PDF والمعاينة.
-import { classLabel, semesterOf } from '../services/catalog.js';
+import { classLabel, semesterOf, resolveOccasions } from '../services/catalog.js';
 import { planStage } from '../scheduler/schedule.js';
 import { teacherQuota } from '../services/quota.js';
 import { hijriShort } from '../utils/arabic.js';
@@ -17,7 +17,12 @@ export function buildMasterModel(state, catalog, derived, { scope } = {}) {
     days: w.days.map((d) => ({ ...d, cells: Array.from({ length: maxP }, () => []) })),
   }));
   const dayIndex = {};
-  weeks.forEach((w) => w.days.forEach((d) => { dayIndex[d.date] = d; }));
+  weeks.forEach((w) => w.days.forEach((d) => { dayIndex[d.date] = d; d.occasions = []; }));
+  // المناسبات الواقعة في كل يوم (لعمود «الأيام والمناسبات» في القالب)
+  resolveOccasions(catalog, state.school.semester).forEach((o) => {
+    const d = dayIndex[o.date];
+    if (d && !d.occasions.includes(o.name)) d.occasions.push(o.name);
+  });
 
   const programsByStage = Object.fromEntries(catalog.stages.map((s) => [s.id, {}]));
   const assign = [];
