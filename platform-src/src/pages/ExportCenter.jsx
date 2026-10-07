@@ -79,6 +79,9 @@ export default function ExportCenter() {
       <div className="toolbar">
         <Segmented label="الخطط المضمّنة" value={scope} onChange={(v) => dispatch({ type: 'settings/update', patch: { exportScope: v } })}
           options={[{ value: 'all', label: 'كل الخطط' }, { value: 'approved', label: 'المعتمدة فقط' }]} />
+        <Segmented label="جدول الإسناد ١٠٪" value={model.assignSource} onChange={(v) => dispatch({ type: 'settings/update', patch: { assignSource: v } })}
+          options={[{ value: 'manual', label: 'الإسناد: فاضي (يدوي)' }, { value: 'calc', label: 'من الحاسبة' }, { value: 'plans', label: 'من الخطط' }]} />
+        {model.assignSource !== 'plans' && <a href="#/calc" className="small">🧮 حاسبة ١٠٪</a>}
         {errors > 0 && <Badge tone="warn" icon="⚠️">فيه {arNum(errors)} خطأ في الخطط — راجعها قبل الطباعة</Badge>}
       </div>
       <div className="export-grid">

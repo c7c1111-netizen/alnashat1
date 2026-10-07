@@ -38,6 +38,7 @@ export function initialState(seed = null, calendarId = '1448-1449', { types = nu
       sessionOverrides: {},
       quotaPolicy: { percent: 10, allowOverride: false },
       exportScope: 'all', // all | approved
+      assignSource: 'manual', // جدول الإسناد في ملف الخطة: manual (فاضي للتعبئة اليدوية) | calc (من حاسبة ١٠٪) | plans (من الخطط)
       templateName: null, // اسم قالب Word مرفوع بدل الرسمي
       onboarded: false,
     },
@@ -45,6 +46,7 @@ export function initialState(seed = null, calendarId = '1448-1449', { types = nu
     teachers: (seed?.teachers || []).map((t) => ({ ...t, quotaOverride: null })),
     plans: [],
     evidence: [],
+    quotaCalc: { weeks: null, rows: [] }, // حاسبة ١٠٪ (جدول الإسناد اليدوي)
     meta: { createdAt: now, updatedAt: now, appVersion: APP_VERSION },
   };
 }
@@ -65,6 +67,7 @@ export function newPlan(state) {
     days: [],
     doubleDays: [],
     periods: {}, // {mon: 3}
+    occasionSlots: {}, // برامج المناسبات: {programId: {date: [period]}} — اختيار المعلم داخل أسبوع المناسبة
     records: {}, // {programId: {goal, targetStudents, tools, steps, notes, status}}
     quotaOverrideConfirmed: false,
     approvedAt: null,
@@ -94,11 +97,12 @@ export function migrateState(raw, seed) {
   s.teachers = Array.isArray(s.teachers) ? s.teachers : base.teachers;
   s.plans = Array.isArray(s.plans) ? s.plans.map((p) => ({ ...newPlanShape(), ...p })) : [];
   s.evidence = Array.isArray(s.evidence) ? s.evidence : [];
+  s.quotaCalc = s.quotaCalc && Array.isArray(s.quotaCalc.rows) ? s.quotaCalc : { weeks: null, rows: [] };
   s.meta = { ...base.meta, ...(s.meta || {}), appVersion: APP_VERSION };
   s.schemaVersion = SCHEMA_VERSION;
   return s;
 }
 
 function newPlanShape() {
-  return { programs: [], days: [], doubleDays: [], periods: {}, records: {}, status: 'draft', wizardStep: 0, semester: 1, quotaOverrideConfirmed: false };
+  return { programs: [], days: [], doubleDays: [], periods: {}, occasionSlots: {}, records: {}, status: 'draft', wizardStep: 0, semester: 1, quotaOverrideConfirmed: false };
 }

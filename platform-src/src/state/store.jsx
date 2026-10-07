@@ -59,6 +59,8 @@ export function reducer(state, action) {
           return { ...p, updatedAt: Date.now(), records: { ...p.records, [action.programId]: { ...prev, ...action.patch } } };
         }),
       });
+    case 'calc/set':
+      return touch({ ...state, quotaCalc: { ...(state.quotaCalc || { rows: [] }), ...action.patch } });
     case 'evidence/add':
       return touch({ ...state, evidence: [...state.evidence, action.item] });
     case 'evidence/delete':

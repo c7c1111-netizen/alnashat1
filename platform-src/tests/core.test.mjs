@@ -5,7 +5,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildCatalog, resolveOccasions, studyDays, instructionalWeeks, programSessions } from '../src/services/catalog.js';
-import { scheduleAll, schedulePlan } from '../src/scheduler/schedule.js';
+import { scheduleAll, schedulePlan, occasionWeek } from '../src/scheduler/schedule.js';
+import { calcQuota, computeCalcRows, calcToAssign } from '../src/services/quotaCalc.js';
 import { teacherQuota, semesterSubjectSessions } from '../src/services/quota.js';
 import { validatePlan, crossPlanIssues, allIssues, summarize } from '../src/validation/conflicts.js';
 import { initialState, newPlan, migrateState } from '../src/state/model.js';
@@ -140,9 +141,10 @@ test('ملف الخطة: الجدول الأسبوعي، جدول الإسناد
   const p1 = mkPlan(st, { classId: 'g4-أ', teacherId: st.teachers[6].id, days: ['sun', 'mon'], doubleDays: ['mon'], periods: { sun: 2, mon: 6 }, programs: [{ programId: progId('الذكاء الاصطناعي') }], createdAt: 1 });
   const p2 = mkPlan(st, { classId: 'g1-أ', teacherId: st.teachers[0].id, days: ['wed'], periods: { wed: 7 }, programs: [{ programId: progId('الخط العربي') }], createdAt: 2 });
   st.plans.push(p1, p2);
-  const m = buildMasterModel(st, catalog, { schedules: scheduleAll(st, catalog) });
+  const m = buildMasterModel(st, catalog, { schedules: scheduleAll(st, catalog) }, { assignSource: 'plans' });
   assert.equal(m.periods, 7);
   assert.equal(m.assign.length, 2);
+  assert.equal(buildMasterModel(st, catalog, { schedules: scheduleAll(st, catalog) }).assign.length, 0, 'الافتراضي: جدول الإسناد فاضي للتعبئة اليدوية');
   assert.ok(m.programsByStage.up.science.some((x) => x.name === 'الذكاء الاصطناعي'));
   assert.ok(m.programsByStage.low.arts.some((x) => x.name === 'الخط العربي'));
   const w1 = m.weeks[0];
@@ -265,7 +267,7 @@ test('خطة ثانوية: أول ثانوي ٣ أيام، والملف يضم �
   assert.equal(sched[a.id].programs[0].needed, 6);
   const errs = allIssues(st, catalog, sched).filter((i) => i.severity === 'error');
   assert.deepEqual(errs, []);
-  const m = buildMasterModel(st, catalog, { schedules: sched });
+  const m = buildMasterModel(st, catalog, { schedules: sched }, { assignSource: 'plans' });
   assert.deepEqual(m.stagesUsed, ['mid', 'high']);
   assert.equal(m.assign.length, 2);
 });
@@ -276,4 +278,55 @@ test('إضافة المعلمين دفعة وحدة من نص ملصوق', () =>
   assert.deepEqual(list[0], { name: 'محمد أحمد', subject: 'رياضيات', weeklyLoad: 18 });
   assert.equal(list[1].subject, 'لغتي');
   assert.equal(list[2].weeklyLoad, 20);
+});
+
+test('برامج المناسبات: كل الحصص في أسبوع المناسبة، حصة في كل يوم، والحصة يختارها المعلم', () => {
+  const st = mkState();
+  const occ = resolveOccasions(catalog, 1).find((o) => o.name === 'يوم المعلم العالمي');
+  const week = occasionWeek(catalog, occ, 1);
+  assert.ok(week.length >= 4 && week.every((d) => d.type === 'study'));
+  assert.ok(week.some((d) => d.date === occ.date));
+  const prog = catalog.programs.find((p) => p.occasionId === occ.id);
+  const plan = mkPlan(st, { classId: 'g4-أ', teacherId: st.teachers[2].id, days: ['mon'], periods: { mon: 3 }, programs: [{ programId: prog.id, sessions: 4 }] });
+  st.plans.push(plan);
+  let s = schedulePlan(st, catalog, plan).programs[0];
+  assert.equal(s.filled, 4);
+  assert.equal(s.slots.length, 4, 'حصة في كل يوم');
+  assert.ok(s.slots.every((x) => week.some((d) => d.date === x.date)), 'كلها في نفس الأسبوع');
+  assert.ok(s.slots.every((x) => x.periods.length === 1 && x.periods[0] === 3), 'الاقتراح: نفس حصة المعلم');
+  assert.ok(s.slots.some((x) => x.day !== 'mon'), 'يشمل أيام غير أيام النشاط');
+  // اختيار المعلم
+  plan.occasionSlots = { [prog.id]: { [week[0].date]: [1], [week[1].date]: [5], [week[2].date]: [2, 4] } };
+  s = schedulePlan(st, catalog, plan).programs[0];
+  assert.equal(s.filled, 4);
+  assert.deepEqual(s.slots.map((x) => x.periods), [[1], [5], [2, 4]]);
+  // ناقص حصة → تنبيه
+  plan.occasionSlots = { [prog.id]: { [week[0].date]: [1] } };
+  const sched = scheduleAll(st, catalog);
+  const errs = validatePlan(st, catalog, plan, sched[plan.id]).filter((i) => i.severity === 'error');
+  assert.ok(errs.some((e) => e.message.includes('أسبوع المناسبة')));
+  // الجدول الأسبوعي يستقبلها
+  plan.occasionSlots = {};
+  const m = buildMasterModel(st, catalog, { schedules: scheduleAll(st, catalog) });
+  const cells = m.weeks.flatMap((w) => w.days).filter((d) => d.cells[2].some((e) => e.program === prog.name));
+  assert.equal(cells.length, 4);
+});
+
+test('حاسبة ١٠٪: المتاح والمتبقي التراكمي لكل معلم', () => {
+  assert.deepEqual(calcQuota(24, 17.6, 10), { total: 422, cap: 42 });
+  assert.deepEqual(calcQuota('', 17.6, 10), { total: null, cap: null });
+  const rows = computeCalcRows([
+    { id: 'a', teacher: 'سعيد', subject: 'علوم', load: 24, program: 'س', n: 10 },
+    { id: 'b', teacher: 'سعيد', program: 'ص', n: 12 },
+    { id: 'c', teacher: 'خالد', load: 12, program: 'ع', n: 30 },
+  ], 17.6, 10);
+  assert.equal(rows[0].remaining, 32);
+  assert.equal(rows[1].subject, 'علوم');
+  assert.equal(rows[1].cap, 42);
+  assert.equal(rows[1].remaining, 20);
+  assert.equal(rows[2].cap, 21);
+  assert.equal(rows[2].remaining, -9);
+  const a = calcToAssign([{ id: 'x', teacher: '', program: '' }, { id: 'y', teacher: 'سعيد', load: 24, program: 'س', grade: 'الرابع أ', n: 4 }], 17.6, 10);
+  assert.equal(a.length, 1);
+  assert.equal(a[0].remaining, 38);
 });

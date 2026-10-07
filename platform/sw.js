@@ -1,7 +1,7 @@
 // Service Worker — العمل بدون إنترنت
 // الواجهة: تُخزَّن عند التثبيت وتُخدم من الذاكرة (تتحدث مع كل إصدار جديد)
 // البيانات (data/) والقالب: الشبكة أولًا ثم الذاكرة إذا ما فيه إنترنت
-const VERSION = '20261007000758';
+const VERSION = '20261007003039';
 const CACHE = `activity-platform-${VERSION}`;
 const PRECACHE = [
  "./",
@@ -9,10 +9,10 @@ const PRECACHE = [
  "./assets/app.js",
  "./assets/chunk-3EQXVVDE.js",
  "./assets/chunk-3RNHDNP5.js",
+ "./assets/chunk-5UABOJYA.js",
+ "./assets/chunk-6M4J4XT4.js",
  "./assets/chunk-CL5KKNJK.js",
  "./assets/chunk-FBND2ZAO.js",
- "./assets/chunk-FFVEGTZ5.js",
- "./assets/chunk-PCSY4WZ2.js",
  "./assets/chunk-R7T435XT.js",
  "./assets/chunk-ZNGLL6V2.js",
  "./data/calendars/1448-1449.json",

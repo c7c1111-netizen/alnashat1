@@ -10,6 +10,7 @@ import Wizard, { NewPlan } from './pages/wizard/Wizard.jsx';
 import Timeline from './pages/Timeline.jsx';
 import Programs from './pages/Programs.jsx';
 import Teachers from './pages/Teachers.jsx';
+import QuotaCalc from './pages/QuotaCalc.jsx';
 import Evidence from './pages/Evidence.jsx';
 import Reports from './pages/Reports.jsx';
 import ExportCenter from './pages/ExportCenter.jsx';
@@ -39,6 +40,7 @@ function Router() {
   else if (a === 'timeline') page = <Timeline />;
   else if (a === 'programs') page = <Programs query={route.query} />;
   else if (a === 'teachers') page = <Teachers />;
+  else if (a === 'calc') page = <QuotaCalc />;
   else if (a === 'evidence') page = <Evidence />;
   else if (a === 'reports') page = <Reports query={route.query} />;
   else if (a === 'export') page = <ExportCenter />;
