@@ -76,7 +76,7 @@ export default function OfficialPrintView({ model, calendarLabel, stageLabels })
           <table className="op-tbl"><thead><tr>
             <th>اسم المعلم</th><th>مادة التدريس</th><th>الحصص المتاحة من ١٠٪</th><th>اسم البرنامج المسند</th><th>حصص البرنامج</th><th>تاريخ بداية التنفيذ</th><th>المتبقي بعد التنفيذ</th>
           </tr></thead><tbody>
-            {rows.map((a, i) => <tr key={i}><td>{a.teacher}</td><td>{a.subject}</td><td>{a.cap != null ? arNum(a.cap) : ''}</td><td>{a.program} ({a.grade})</td><td className="op-cnt">{arNum(a.n)}</td><td>{a.startH}</td><td>{a.remaining != null ? arNum(a.remaining) : ''}</td></tr>)}
+            {rows.map((a, i) => <tr key={i}><td>{a.teacher}</td><td>{a.subject}</td><td>{a.cap != null ? arNum(a.cap) : ''}</td><td>{a.grade ? `${a.program} (${a.grade})` : a.program}</td><td className="op-cnt">{a.n ? arNum(a.n) : ''}</td><td>{a.startH}</td><td>{a.remaining != null ? arNum(a.remaining) : ''}</td></tr>)}
             {pi === assignPages.length - 1 && Array.from({ length: Math.max(0, 12 - rows.length) }, (_, i) => <tr key={`e${i}`}>{Array.from({ length: 7 }, (_, j) => <td key={j}>&nbsp;</td>)}</tr>)}
           </tbody></table>
         </Page>

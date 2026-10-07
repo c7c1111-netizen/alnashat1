@@ -50,7 +50,18 @@ export function validatePlan(state, catalog, plan, sched) {
   if (sched) {
     sched.programs.forEach((sp) => {
       if (sp.needed > 0 && sp.shortage) {
-        out.push(issue('error', 'shortage', `«${sp.name}» توزّع ${arNum(sp.filled)} من ${arNum(sp.needed)} حصص — أضف يوم نشاط أو قلّل البرامج`, { ...P, step: 2, programId: sp.programId }));
+        const msg = sp.occasion
+          ? (sp.weekDays?.length ? `«${sp.name}»: اخترت ${arNum(sp.filled)} من ${arNum(sp.needed)} حصص في أسبوع المناسبة — كمّل اختيار الحصص` : `«${sp.name}»: ما فيه أيام دراسة قريبة من المناسبة`)
+          : `«${sp.name}» توزّع ${arNum(sp.filled)} من ${arNum(sp.needed)} حصص — أضف يوم نشاط أو قلّل البرامج`;
+        out.push(issue('error', 'shortage', msg, { ...P, step: 2, programId: sp.programId }));
+      }
+      if (sp.occasion) {
+        sp.slots.forEach((s) => s.periods.filter((x) => sp.taken?.[s.date]?.includes(x)).forEach((x) => {
+          out.push(issue('error', 'conflict', `«${sp.name}»: الحصة ${PERIOD_NAMES[x - 1]} يوم ${DAY_NAMES[s.day]} ${gregShort(s.date)} محجوزة للمعلم أو الفصل في خطة ثانية`, { ...P, step: 2, programId: sp.programId }));
+        }));
+        sp.slots.filter((s) => s.periods.length < s.count).forEach((s) => {
+          out.push(issue('error', 'period', `«${sp.name}»: اختر الحصة يوم ${DAY_NAMES[s.day]} ${gregShort(s.date)}`, { ...P, step: 2, programId: sp.programId }));
+        });
       }
       if (sp.occasion && sp.slots.length) {
         const t = new Date(sp.occasion.date).getTime();

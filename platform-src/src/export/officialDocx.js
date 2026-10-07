@@ -193,7 +193,7 @@ function fillAssign(doc, model) {
   const tbl = all(doc, 'tbl').find((t) => { const r = kids(t, 'tr')[0]; return r && text(r).includes('جدول اسناد'); });
   if (!tbl) return;
   const rows = kids(tbl, 'tr').filter((r, i) => i >= 2 && kids(r, 'tc').length === 7);
-  if (!rows.length) return;
+  if (!rows.length || !model.assign.length) return; // فاضي = للتعبئة اليدوية
   while (rows.length < model.assign.length) {
     const last = rows[rows.length - 1];
     const c = cloneEmptyRow(last);
@@ -202,7 +202,7 @@ function fillAssign(doc, model) {
   }
   model.assign.forEach((a, i) => {
     const c = kids(rows[i], 'tc');
-    const vals = [a.remaining != null ? arNum(a.remaining) : '', a.startH, arNum(a.n), `${a.program} (${a.grade})`, a.cap != null ? arNum(a.cap) : '', a.subject, a.teacher];
+    const vals = [a.remaining != null ? arNum(a.remaining) : '', a.startH, a.n ? arNum(a.n) : '', a.grade ? `${a.program} (${a.grade})` : a.program, a.cap != null ? arNum(a.cap) : '', a.subject, a.teacher];
     vals.forEach((v, j) => setCellText(c[j], v, { sz: 18, b: j === 6 || j === 3 }));
   });
 }

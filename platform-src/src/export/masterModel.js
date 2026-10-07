@@ -2,13 +2,15 @@
 import { classLabel, semesterOf, resolveOccasions } from '../services/catalog.js';
 import { planStage } from '../scheduler/schedule.js';
 import { teacherQuota } from '../services/quota.js';
+import { calcToAssign, calcWeeks } from '../services/quotaCalc.js';
 import { hijriShort } from '../utils/arabic.js';
 
 export function plansInScope(state, scope = state.settings?.exportScope || 'all') {
   return state.plans.filter((p) => (scope === 'approved' ? p.status === 'approved' : true) && p.classId && p.teacherId && p.programs?.length);
 }
 
-export function buildMasterModel(state, catalog, derived, { scope } = {}) {
+export function buildMasterModel(state, catalog, derived, { scope, assignSource } = {}) {
+  const source = assignSource || state.settings?.assignSource || 'manual';
   const plans = plansInScope(state, scope);
   const maxP = Math.min(state.settings?.periodsPerDay || 7, 8);
   const sem = semesterOf(catalog, state.school.semester);
@@ -73,7 +75,12 @@ export function buildMasterModel(state, catalog, derived, { scope } = {}) {
     domains: catalog.domains,
     periods: maxP,
     programsByStage,
-    assign,
+    // جدول الإسناد: فاضي للتعبئة اليدوية، أو من حاسبة ١٠٪، أو من الخطط
+    assign: source === 'plans' ? assign
+      : source === 'calc' ? calcToAssign(state.quotaCalc?.rows, calcWeeks(state, catalog), state.settings?.quotaPolicy?.percent ?? 10)
+        : [],
+    assignFromPlans: assign,
+    assignSource: source,
     weeks,
     planCount: plans.length,
   };

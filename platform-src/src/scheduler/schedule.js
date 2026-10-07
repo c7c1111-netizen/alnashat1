@@ -1,9 +1,10 @@
 // محرك التوزيع الذكي: يوزّع حصص برامج كل خطة على أيام النشاط في أسابيع الفصل.
-// - البرامج المرتبطة بمناسبة تنحجز أولًا في أقرب الأيام لتاريخ المناسبة.
+// - البرامج المرتبطة بمناسبة تنحصر كلها في أسبوع المناسبة: حصة في كل يوم (أي يوم دراسي،
+//   حتى لو ما هو من أيام النشاط)، والمعلم يختار الحصة لكل يوم (plan.occasionSlots).
 // - باقي البرامج تتوزع بالتتابع على أقرب أيام فاضية.
 // - في أيام «الحصتين المتتاليتين» يستوعب اليوم حصتين من نفس البرنامج.
 // - التوزيع يتجنب الأيام/الحصص المحجوزة لنفس المعلم أو نفس الفصل في خطط سابقة.
-import { programSessions, stageOfClass, studyDays, resolveOccasions, defaultActivityDays } from '../services/catalog.js';
+import { programSessions, stageOfClass, studyDays, semesterDays, resolveOccasions, defaultActivityDays } from '../services/catalog.js';
 import { DAY_ORDER } from '../utils/arabic.js';
 
 export function planStage(state, catalog, plan) {
@@ -27,6 +28,23 @@ function periodsFor(plan, dayKey, count) {
   const p = parseInt(plan.periods?.[dayKey], 10);
   if (!(p >= 1)) return [];
   return Array.from({ length: count }, (_, i) => p + i);
+}
+
+/**
+ * أيام أسبوع المناسبة الدراسية. لو يوم المناسبة إجازة أو أسبوعها كله إجازة → أقرب أسبوع دراسي قبلها، وإلا بعدها.
+ */
+export function occasionWeek(catalog, occasion, semesterId = 1) {
+  const all = semesterDays(catalog, semesterId);
+  const weeks = [];
+  all.forEach((d) => { (weeks[d.weekIndex] = weeks[d.weekIndex] || []).push(d); });
+  const list = weeks.filter(Boolean);
+  const study = (w) => w.filter((d) => d.type === 'study');
+  // الأسبوع اللي يبدأ قبل/في تاريخ المناسبة (الجمعة والسبت يتبعون الأسبوع اللي قبلهم)
+  let i = -1;
+  list.forEach((w, k) => { if (w[0].date <= occasion.date) i = k; });
+  for (let k = i; k >= 0; k--) if (study(list[k]).length) return study(list[k]);
+  for (let k = Math.max(0, i + 1); k < list.length; k++) if (study(list[k]).length) return study(list[k]);
+  return [];
 }
 
 /**
@@ -55,7 +73,10 @@ export function schedulePlan(state, catalog, plan, busy = null, opts = {}) {
     return c.periods.some((p) => (tKey && busy.has(`${tKey}|${c.date}|${p}`)) || (cKey && busy.has(`${cKey}|${c.date}|${p}`)));
   };
   const used = new Set();
-  const free = (c) => !used.has(c.date) && !(opts.avoidBusy !== false && blocked(c));
+  let occUsedRef = null;
+  let occDatesRef = null;
+  const occClash = (c) => occUsedRef && (c.periods.length ? c.periods.some((p) => occUsedRef.has(`${c.date}|${p}`)) : occDatesRef.has(c.date));
+  const free = (c) => !used.has(c.date) && !occClash(c) && !(opts.avoidBusy !== false && blocked(c));
 
   const items = (plan.programs || []).map((it, idx) => {
     const prog = catalog.programById[it.programId];
@@ -78,18 +99,46 @@ export function schedulePlan(state, catalog, plan, busy = null, opts = {}) {
     return { slots, filled };
   };
 
-  // ١) البرامج المرتبطة بمناسبة
+  // ١) البرامج المرتبطة بمناسبة: كلها في أسبوع المناسبة، حصة في كل يوم، والحصة يختارها المعلم
+  const occUsed = new Set(); // 'date|period'
+  const occDates = new Set();
+  const isBusy = (date, p) => !!busy && ((tKey && busy.has(`${tKey}|${date}|${p}`)) || (cKey && busy.has(`${cKey}|${date}|${p}`)));
+  const fallbackPeriod = (() => { const v = Object.values(plan.periods || {}).map((x) => parseInt(x, 10)).find((x) => x >= 1 && x <= maxP); return v || null; })();
+  const pickPeriod = (date, day, avoid) => {
+    const base = parseInt(plan.periods?.[day], 10) || fallbackPeriod;
+    if (!base) return null;
+    const order = [base, ...Array.from({ length: maxP }, (_, k) => k + 1).filter((x) => x !== base).sort((x, y) => Math.abs(x - base) - Math.abs(y - base) || x - y)];
+    return order.find((x) => !avoid.has(x) && !isBusy(date, x) && !occUsed.has(`${date}|${x}`)) || null;
+  };
   items.filter((i) => i.occasion && i.needed > 0).forEach((item) => {
-    const t = new Date(item.occasion.date).getTime();
-    const pool = candidates.filter(free).sort((a, b) =>
-      Math.abs(new Date(a.date) - t) - Math.abs(new Date(b.date) - t) || a.date.localeCompare(b.date));
-    const picked = [];
-    let cap = 0;
-    for (const c of pool) { if (cap >= item.needed) break; picked.push(c); cap += c.cap; }
-    picked.sort((a, b) => a.date.localeCompare(b.date));
-    const { slots, filled } = take(item, picked);
-    results[item.idx] = { ...item, slots, filled };
+    const week = occasionWeek(catalog, item.occasion, plan.semester || 1);
+    const weekDays = week.map((d) => ({ date: d.date, day: d.day, hijri: d.hijri, weekIndex: d.weekIndex, weekLabel: d.weekLabel }));
+    const taken = Object.fromEntries(weekDays.map((d) => [d.date, Array.from({ length: maxP }, (_, k) => k + 1).filter((p) => isBusy(d.date, p))]));
+    const custom = plan.occasionSlots?.[item.programId];
+    let slots;
+    if (custom && typeof custom === 'object') {
+      // اختيار المعلم
+      slots = weekDays.filter((d) => Array.isArray(custom[d.date]) && custom[d.date].length).map((d) => {
+        const periods = [...new Set(custom[d.date].map((x) => parseInt(x, 10)).filter((x) => x >= 1 && x <= maxP))].sort((x, y) => x - y);
+        return { ...d, count: periods.length, periods };
+      }).filter((sl) => sl.count);
+    } else {
+      // اقتراح تلقائي: أقرب الأيام لتاريخ المناسبة، حصة في كل يوم (ولو الحصص أكثر من الأيام نكمّل حصة ثانية)
+      const t = new Date(item.occasion.date).getTime();
+      const order = [...weekDays].sort((x, y) => Math.abs(new Date(x.date) - t) - Math.abs(new Date(y.date) - t) || x.date.localeCompare(y.date));
+      const counts = {};
+      for (let k = 0; k < item.needed && order.length; k++) { const d = order[k % order.length]; counts[d.date] = (counts[d.date] || 0) + 1; }
+      slots = weekDays.filter((d) => counts[d.date]).map((d) => {
+        const periods = [];
+        for (let k = 0; k < counts[d.date]; k++) { const p = pickPeriod(d.date, d.day, new Set(periods)); if (p) periods.push(p); }
+        return { ...d, count: counts[d.date], periods: periods.sort((x, y) => x - y), auto: true };
+      });
+    }
+    slots.forEach((sl) => { occDates.add(sl.date); sl.periods.forEach((p) => occUsed.add(`${sl.date}|${p}`)); });
+    const filled = slots.reduce((a2, sl) => a2 + sl.count, 0);
+    results[item.idx] = { ...item, slots, filled, weekDays, taken, custom: !!custom };
   });
+  occUsedRef = occUsed; occDatesRef = occDates;
   // ٢) باقي البرامج بالتتابع
   let cursor = 0;
   items.filter((i) => !(i.occasion && i.needed > 0)).forEach((item) => {
@@ -123,6 +172,9 @@ export function schedulePlan(state, catalog, plan, busy = null, opts = {}) {
     start: r.slots[0]?.date || null,
     end: r.slots[r.slots.length - 1]?.date || null,
     occasion: r.occasion,
+    weekDays: r.weekDays || null,
+    taken: r.taken || null,
+    custom: !!r.custom,
   }));
   const capacity = candidates.reduce((a, c) => a + c.cap, 0);
   const usedSessions = programs.reduce((a, p) => a + p.filled, 0);

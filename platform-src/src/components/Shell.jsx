@@ -10,6 +10,7 @@ export const NAV = [
   { href: '#/timeline', icon: '📅', label: 'الجدول الزمني', match: (p) => p[0] === 'timeline' },
   { href: '#/programs', icon: '🚦', label: 'التنفيذ', match: (p) => p[0] === 'programs' },
   { href: '#/teachers', icon: '👨‍🏫', label: 'المعلمون', match: (p) => p[0] === 'teachers' },
+  { href: '#/calc', icon: '🧮', label: 'حاسبة ١٠٪', match: (p) => p[0] === 'calc' },
   { href: '#/evidence', icon: '📁', label: 'الشواهد', match: (p) => p[0] === 'evidence' },
   { href: '#/reports', icon: '📊', label: 'التقارير', match: (p) => p[0] === 'reports' },
   { href: '#/export', icon: '📤', label: 'التصدير', match: (p) => p[0] === 'export' },
@@ -69,7 +70,7 @@ export function Shell({ route, children }) {
       {schools && <SchoolsModal onClose={() => setSchools(false)} />}
       <nav className="tabbar" aria-label="التنقل السريع">
         {MOBILE.map((href) => {
-          const n = href === '#/more' ? { href, icon: '☰', label: 'المزيد', match: (p) => ['more', 'teachers', 'evidence', 'reports', 'export', 'settings'].includes(p[0]) } : NAV.find((x) => x.href === href);
+          const n = href === '#/more' ? { href, icon: '☰', label: 'المزيد', match: (p) => ['more', 'teachers', 'calc', 'evidence', 'reports', 'export', 'settings'].includes(p[0]) } : NAV.find((x) => x.href === href);
           const on = n.match(route.parts);
           return (
             <a key={href} href={href} className={on ? 'active' : ''} aria-current={on ? 'page' : undefined}>
