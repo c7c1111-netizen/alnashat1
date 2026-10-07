@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "",
+  "installCommand": "",
+  "outputDirectory": ".",
+  "redirects": [
+    { "source": "/", "destination": "/platform/", "permanent": false }
+  ],
+  "headers": [
+    { "source": "/platform/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/platform/version.json", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/platform/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}
