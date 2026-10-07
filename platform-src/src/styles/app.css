@@ -524,6 +524,7 @@ input.num.changed { border-color: var(--accent); background: var(--accent-soft);
 .op-banner { color: #fff; font-size: 22px; font-weight: 800; background: #6b5b95; }
 .op-banner.exams { background: #4f86c6; }
 .op-banner.holiday { background: #c9a227; font-size: 16px; }
+.op-occ { font-weight: 700; color: #1f6f69; font-size: 9px; }
 .op-weekhead { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .op-weekhead .k { background: #2e9c94; color: #fff; font-weight: 800; padding: 3px 22px; }
 .op-weekhead .n { background: #7f7f7f; color: #fff; font-weight: 800; padding: 3px 16px; min-width: 46px; text-align: center; }
